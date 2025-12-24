@@ -276,6 +276,9 @@ def main():
     print(f"\nPredicted 1-Day CVaR (95%): {opt_cvar:.5f}%")
     print(f"Expected 1-Day Return     : {opt_return:.5f}%")
     print(f"STARR Ratio               : {(opt_return - RISK_FREE_RATE)/opt_cvar:.5f}")
+
+    if opt_return < 0:
+        print("\n[REGIME DETECTED] Negative Expected Returns -> Strategy shifted to Capital Preservation.")
     print("-" * 50)
 
 if __name__ == "__main__":
