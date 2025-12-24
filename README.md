@@ -35,4 +35,6 @@ A "Senior Quant" level implementation of a robust portfolio optimization model t
 4.  **Optimization**: Finds the asset weights that maximize the STARR Ratio.
 
 ---
-*Created by [Your Name/Handle]*
+*Created by **Sachin D B***
+*MSc Economics Student, Dr B R Ambedkar School of Economics University, Bengaluru*
+
