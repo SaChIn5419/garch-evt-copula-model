@@ -12,7 +12,12 @@ A "Senior Quant" level implementation of a robust portfolio optimization model t
 *   **Student-t Copula** (df=4) to model joint crashes (Tail Dependence).
 *   **Min-CVaR** and **Max-STARR** optimization objectives.
 
+## Conceptual Difference: Student-t vs. Vine Copula
+*   **The Main Model (`quant_model.py`)** uses a **Student-t Copula**. This is a "Symmetric" approach. It assumes that if the market crashes, all assets correlate in a way described by a single global structure (the degrees of freedom). It is robust, fast, and standard for **Portfolio Optimization**.
+*   **The Stress Test (`vine_stress_test.py`)** uses a **Vine Copula**. This is a "Structural" approach. It decomposes the market into a tree of specific pair-wise relationships (e.g., "Gold depends on USD", "Tech depends on Nasdaq"). It is more complex but better for **Diagnosing Causality** (e.g., Is this a D-Vine chain reaction or a C-Vine market collapse?).
+
 ## How to Run
+
 1.  **Install Requirements:**
     ```bash
     pip install numpy pandas yfinance arch scipy statsmodels
