@@ -98,8 +98,61 @@ class AutomatedVineManager:
         # But for simple visualization, the string representation is best
         print(self.model.str())
         
-        # NOTE: Full graphical visualization of R-Vines requires parsing the matrix
-        # which is complex. For this demo, the text structure and Diagnosis is strictly sufficient.
+    def visualize_proxy_tree(self):
+        """
+        Fallback visualization using NetworkX if pyvinecopulib is missing.
+        Constructs a graph based on the strongest Spearman correlations (Approximating the First Tree).
+        """
+        print("\n--- VISUALIZING STRUCTURE (Proxy Graph) ---")
+        corr_matrix = self.u.corr(method='spearman').abs()
+        n_assets = len(self.names)
+        G = nx.Graph()
+        
+        # Add nodes
+        for name in self.names:
+            G.add_node(name)
+            
+        # Add edges for high correlations (Threshold logic to mimic MST)
+        # We greedily add the strongest links (Kruskal's algorithm-ish)
+        # to form a spanning structure.
+        edges = []
+        for i in range(n_assets):
+            for j in range(i+1, n_assets):
+                name_i = self.names[i]
+                name_j = self.names[j]
+                weight = corr_matrix.loc[name_i, name_j]
+                edges.append((name_i, name_j, weight))
+        
+        # Sort by strongest correlation
+        edges.sort(key=lambda x: x[2], reverse=True)
+        
+        # Add edges until we have a connected component (Spanning Tree Proxy)
+        # For visualization, we just show top N links to key structure
+        top_k = n_assets - 1 + 2 # Minimal spanning tree + a few loops
+        
+        print(f"Top {top_k} Strongest Dependencies:")
+        for u, v, w in edges[:top_k]:
+            G.add_edge(u, v, weight=w)
+            print(f"  {u} <--> {v} (Correlation: {w:.2f})")
+            
+        # Plot
+        plt.figure(figsize=(10, 8))
+        pos = nx.spring_layout(G, k=0.5, seed=42)
+        
+        # Draw central nodes larger
+        centrality = nx.degree_centrality(G)
+        node_sizes = [centrality[node] * 3000 for node in G.nodes()]
+        
+        nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color='skyblue', alpha=0.8)
+        nx.draw_networkx_edges(G, pos, width=2, alpha=0.5, edge_color='gray')
+        nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
+        
+        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+        
+        plt.title("Estimated Vine Structure (Correlation Proxy)")
+        plt.axis('off')
+        plt.show()
 
 # ==========================================
 # PORTFOLIO STRESS TEST CONFIGURATION
@@ -150,7 +203,8 @@ def run_stress_test():
          vm.fit_optimal_vine()
          vm.visualize_first_tree()
     else:
-        print("\n[NOTE] Skipping Fit/Visualize because pyvinecopulib is missing.")
+        print("\n[NOTE] pyvinecopulib missing. Using Fallback NetworkX Visualization.")
+        vm.visualize_proxy_tree()
 
 import sys
 if __name__ == "__main__":
