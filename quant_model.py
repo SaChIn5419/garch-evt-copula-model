@@ -11,9 +11,13 @@ from statsmodels.stats.diagnostic import acorr_ljungbox
 # CONFIGURATION
 # ==========================================
 # 1. ASSET SELECTION
-# You can change these tickers to any valid Yahoo Finance symbol.
-# Examples: '^NSEI' (Nifty 50), 'GC=F' (Gold), 'BTC-USD' (Bitcoin), 'AAPL' (Apple)
-TICKERS = ['^NSEI', 'GC=F']
+# Define pairs for analysis
+PAIRS = {
+    "Macro Hedge": ['INR=X', '^NSEI'],
+    "Input Cost": ['CL=F', 'ASIANPAINT.NS'],
+    "Safe Havens": ['BTC-USD', 'GC=F'],
+    "Tech Contagion": ['^NDX', '^CNXIT']
+}
 
 # 2. REGIME SELECTION
 # Options: 'All', 'Extreme', 'Normal'
@@ -221,9 +225,20 @@ def calculate_starr_ratio(weights, returns_scenarios, risk_free_rate=0.0):
     starr = (expected_return - risk_free_rate) / cvar
     return -starr # Return negative for minimization
 
-def main():
+def analyze_pair(name, tickers):
+    print(f"\n{'='*60}")
+    print(f"  ANALYZING PAIR: {name} {tickers}")
+    print(f"{'='*60}")
+
     # 1. Data
-    returns = get_data(TICKERS)
+    try:
+        returns = get_data(tickers)
+        if returns.empty:
+            print(f"[ERROR] No data found for {tickers}. Skipping...")
+            return
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch data: {e}")
+        return
     
     # 2. GARCH (Marginals)
     std_residuals, latest_vol_map = fit_garch(returns)
@@ -232,13 +247,10 @@ def main():
     regime_residuals = filter_regime(std_residuals, regime=REGIME, threshold=EXTREME_THRESHOLD)
     
     # 4. Copula Simulation
-    # Generate correlated standard shocks
     sim_shocks = fit_copula_and_simulate(regime_residuals)
     
     # 5. Transform Shocks to Returns
-    # Return = Forecast_Vol * Simulated_Shock
     sim_returns = np.zeros_like(sim_shocks)
-    
     asset_names = returns.columns
     current_vols = np.array([latest_vol_map[name] for name in asset_names])
     
@@ -265,10 +277,10 @@ def main():
     )
     
     print("-" * 50)
-    print(f"RESULTS (Regime: {REGIME})")
+    print(f"RESULTS FOR {name} (Regime: {REGIME})")
     print("-" * 50)
     for i, asset in enumerate(asset_names):
-        print(f"Weight {asset:<10}: {result.x[i]:.4f}")
+        print(f"Weight {asset:<15}: {result.x[i]:.4f}")
     
     # Calculate final metrics for the optimal weights
     opt_cvar = calculate_portfolio_cvar(result.x, sim_returns)
@@ -281,5 +293,11 @@ def main():
         print("\n[REGIME DETECTED] Negative Expected Returns -> Strategy shifted to Capital Preservation.")
     print("-" * 50)
 
+def main():
+    print(f"Starting Multi-Pair Quantity Analysis...")
+    for name, tickers in PAIRS.items():
+        analyze_pair(name, tickers)
+
 if __name__ == "__main__":
     main()
+
