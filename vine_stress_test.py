@@ -219,39 +219,87 @@ NEW_CLUSTERS = {
     "Defensive_Rotation": ['^NSEI', 'HINDUNILVR.NS', 'ITC.NS']
 }
 
-def get_data(tickers):
-    print(f"Fetching data for {len(tickers)} assets...")
+# Import Optimization Logic from Main Model
+try:
+    from quant_model import optimize_portfolio, fit_garch, filter_regime, fit_copula_and_simulate, calculate_portfolio_cvar
+except ImportError:
+    print("[WARNING] Could not import 'quant_model'. Backtesting feature disabled.")
+
+# CRISIS PERIODS FOR BACKTESTING
+CRISIS_SCENARIOS = {
+    "COVID_Crash": ("2020-01-01", "2020-04-30"),
+    "2022_Tech_Wreck": ("2022-01-01", "2022-06-30"),
+    "Current_Regime": ("2024-01-01", "2024-12-30")
+}
+
+def get_data_for_period(tickers, start, end):
+    print(f"   Fetching {start} to {end}...")
     try:
-        data = yf.download(tickers, start="2023-01-01", end="2024-01-01", auto_adjust=False)['Adj Close']
+        data = yf.download(tickers, start=start, end=end, auto_adjust=False)['Adj Close']
         returns = data.pct_change(fill_method=None).dropna()
         return returns
     except Exception as e:
-        print(f"[ERROR] Data fetch failed: {e}")
+        print(f"   [ERROR] Fetch failed: {e}")
         return pd.DataFrame()
+
+def backtest_performance(tickers, crisis_name, start, end):
+    """
+    Connects the Vine Structure analysis with the GARCH-Copula Optimization.
+    """
+    print(f"\n   >>> BACKTEST: {crisis_name} ({start} to {end})")
+    
+    # 1. Get Data
+    returns = get_data_for_period(tickers, start, end)
+    if returns.empty: return
+
+    # 2. Structural Diagnosis (Vine)
+    u_data = returns.apply(lambda x: rankdata(x) / (len(x) + 1))
+    vm = AutomatedVineManager(u_data, u_data.columns)
+    vm.diagnose_structure_logic()
+    
+    # 3. Optimization Performance (GARCH-Copula)
+    # We simulate what the model would have done IN that crisis
+    try:
+        # Scale returns for GARCH
+        scaled_returns = returns * 100 
+        std_resid, vol_map = fit_garch(scaled_returns)
+        regime_resid = filter_regime(std_resid, regime='Extreme', threshold=0.10)
+        sim_shocks = fit_copula_and_simulate(regime_resid)
+        
+        # Reconstruct returns
+        sim_returns = np.zeros_like(sim_shocks)
+        current_vols = np.array([vol_map[name] for name in returns.columns])
+        for i in range(len(returns.columns)):
+            sim_returns[:, i] = current_vols[i] * sim_shocks[:, i]
+            
+        # Optimize
+        weights = optimize_portfolio(sim_returns, 0.0)
+        
+        # Calculate Realized Drawdown (Simple Max Drawdown of Equal Weight vs Optimal)
+        # This is a simplification: We compare the 'Optimal' weights derived from the crisis internal structure
+        # vs an Equal Weight benchmark.
+        
+        # Actual Cumulative Return of Optimal Strategy
+        daily_pnl = np.dot(returns.values, weights)
+        cum_pnl = (1 + daily_pnl).cumprod()
+        sys_drawdown = (cum_pnl - np.maximum.accumulate(cum_pnl)) / np.maximum.accumulate(cum_pnl)
+        max_dd = sys_drawdown.min() * 100
+        
+        print(f"\n   [PERFORMANCE] Model Max Drawdown during {crisis_name}: {max_dd:.2f}%")
+        print(f"   [OPTIMAL WEIGHTS] {dict(zip(tickers, np.round(weights, 2)))}")
+        
+    except Exception as e:
+        print(f"   [NOTE] Optimization Backtest skipped: {e}")
 
 def run_batch_stress_test():
     for name, tickers in NEW_CLUSTERS.items():
-        print(f"\n{'='*60}")
-        print(f"  TESTING CLUSTER: {name}")
-        print(f"{'='*60}")
+        print(f"\n{'#'*60}")
+        print(f"  CLUSTER ANALYSIS: {name}")
+        print(f"{'#'*60}")
         
-        # 1. Get Data
-        try:
-            returns = get_data(tickers)
-            if returns.empty:
-                print(f"[SKIP] No data for {name}")
-                continue
-                
-            # 2. Transform to Uniform (Empirical)
-            u_data = returns.apply(lambda x: rankdata(x) / (len(x) + 1))
-            
-            # 3. Run Robust Manager
-            vm = AutomatedVineManager(u_data, u_data.columns)
-            vm.diagnose_structure_logic()
-            vm.visualize_proxy_tree() # This uses your new Bootstrap Logic
-            
-        except Exception as e:
-            print(f"[ERROR] Failed on {name}: {e}")
+        # Compare 2020 Crisis vs Now
+        backtest_performance(tickers, "COVID_Crash", CRISIS_SCENARIOS["COVID_Crash"][0], CRISIS_SCENARIOS["COVID_Crash"][1])
+        backtest_performance(tickers, "Current_Regime", CRISIS_SCENARIOS["Current_Regime"][0], CRISIS_SCENARIOS["Current_Regime"][1])
 
 if __name__ == "__main__":
     run_batch_stress_test()

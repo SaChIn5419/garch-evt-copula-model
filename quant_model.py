@@ -225,6 +225,26 @@ def calculate_starr_ratio(weights, returns_scenarios, risk_free_rate=0.0):
     starr = (expected_return - risk_free_rate) / cvar
     return -starr # Return negative for minimization
 
+def optimize_portfolio(sim_returns, risk_free_rate):
+    """
+    Optimizes portfolio weights to maximize STARR Ratio.
+    Returns: Optimal Weights (numpy array)
+    """
+    n_assets = sim_returns.shape[1]
+    initial_weights = np.ones(n_assets) / n_assets
+    bounds = tuple((0, 1) for _ in range(n_assets))
+    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+    
+    result = minimize(
+        calculate_starr_ratio, 
+        initial_weights, 
+        args=(sim_returns, risk_free_rate), 
+        method='SLSQP', 
+        bounds=bounds, 
+        constraints=constraints
+    )
+    return result.x
+
 def analyze_pair(name, tickers):
     print(f"\n{'='*60}")
     print(f"  ANALYZING PAIR: {name} {tickers}")
@@ -262,29 +282,17 @@ def analyze_pair(name, tickers):
     test_residuals(regime_residuals)
 
     print("\nOptimizing Portfolio for Maximum STARR Ratio (Return / CVaR)...")
-    n_assets = len(asset_names)
-    initial_weights = np.ones(n_assets) / n_assets
-    bounds = tuple((0, 1) for _ in range(n_assets))
-    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
-    
-    result = minimize(
-        calculate_starr_ratio, 
-        initial_weights, 
-        args=(sim_returns, RISK_FREE_RATE), 
-        method='SLSQP', 
-        bounds=bounds, 
-        constraints=constraints
-    )
+    optimal_weights = optimize_portfolio(sim_returns, RISK_FREE_RATE)
     
     print("-" * 50)
     print(f"RESULTS FOR {name} (Regime: {REGIME})")
     print("-" * 50)
     for i, asset in enumerate(asset_names):
-        print(f"Weight {asset:<15}: {result.x[i]:.4f}")
+        print(f"Weight {asset:<15}: {optimal_weights[i]:.4f}")
     
     # Calculate final metrics for the optimal weights
-    opt_cvar = calculate_portfolio_cvar(result.x, sim_returns)
-    opt_return = np.dot(sim_returns, result.x).mean()
+    opt_cvar = calculate_portfolio_cvar(optimal_weights, sim_returns)
+    opt_return = np.dot(sim_returns, optimal_weights).mean()
     print(f"\nPredicted 1-Day CVaR (95%): {opt_cvar:.5f}%")
     print(f"Expected 1-Day Return     : {opt_return:.5f}%")
     print(f"STARR Ratio               : {(opt_return - RISK_FREE_RATE)/opt_cvar:.5f}")
