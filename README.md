@@ -10,23 +10,17 @@ A "Senior Quant" level implementation of a robust portfolio optimization model t
 *   **GARCH(1,1)** with Student-t innovations to filter volatility clustering.
 *   **Ljung-Box Test** to validate "White Noise" assumption of residuals.
 *   **Student-t Copula** (df=4) to model joint crashes (Tail Dependence).
-*   **Min-CVaR** and **Max-STARR** optimization objectives.
+*   **Optimization**: Maximizes **STARR Ratio** (Excess Return / CVaR) for tail-risk adjusted returns.
+*   **Validation**: Includes **Ljung-Box Tests** for GARCH residual adequacy.
+*   **Diagnosis**: **Robust Vine Copula** analysis (via Bootstrap) to detect structural breaks (C-Vine vs D-Vine).
+*   **Backtesting**: "Crisis vs Now" feature to compare current portfolio resilience against historical crashes (e.g., COVID-19).
+*   **Pipeline**: Automated `pipeline.py` orchestrator to run the full analysis suite in one go.
 
-## Conceptual Difference: Student-t vs. Vine Copula
-*   **The Main Model (`quant_model.py`)** uses a **Student-t Copula**. This is a "Symmetric" approach. It assumes that if the market crashes, all assets correlate in a way described by a single global structure (the degrees of freedom). It is robust, fast, and standard for **Portfolio Optimization**.
-*   **The Stress Test (`vine_stress_test.py`)** uses a **Vine Copula**. This is a "Structural" approach. It decomposes the market into a tree of specific pair-wise relationships (e.g., "Gold depends on USD", "Tech depends on Nasdaq"). It is more complex but better for **Diagnosing Causality** (e.g., Is this a D-Vine chain reaction or a C-Vine market collapse?).
-
-## How to Run
-
-1.  **Install Requirements:**
-    ```bash
-    pip install numpy pandas yfinance arch scipy statsmodels
-    ```
-2.  **Run Model:**
-    Double-click `run_model.bat` or run:
-    ```bash
-    python quant_model.py
-    ```
+## Usage
+1.  Run `run_pipeline.bat` (Windows) to execute the full workflow.
+2.  Or run components individually:
+    *   `run_model.bat`: Portfolio Optimization.
+    *   `run_vine.bat`: Structural Stress Testing.
 
 ## Logic
 1.  **Marginal Models**: Fits GARCH to strip volatility.
