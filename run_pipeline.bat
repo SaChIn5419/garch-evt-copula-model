@@ -14,14 +14,15 @@ for %%p in (
     "%LOCALAPPDATA%\Continuum\anaconda3\Scripts\activate.bat"
 ) do (
     if exist %%p (
-        set "CONDA_ACTIVATE=%%p"
-        echo [INFO] Found Conda at: %%p
+        REM Use ~ to strip quotes from the loop variable then set variable explicitly
+        set "CONDA_ACTIVATE=%%~p"
         goto FoundConda
     )
 )
 
 :FoundConda
 if defined CONDA_ACTIVATE (
+    echo [INFO] Found Conda at: "%CONDA_ACTIVATE%"
     echo Activating Conda base environment...
     call "%CONDA_ACTIVATE%"
 ) else (

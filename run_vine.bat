@@ -11,19 +11,28 @@ echo.
 cd /d "%~dp0"
 
 :: --- CONDA DETECTION START ---
-:: Try to find Conda activation script in common locations
-set "CONDA_PATH="
-if exist "%USERPROFILE%\anaconda3\Scripts\activate.bat" set "CONDA_PATH=%USERPROFILE%\anaconda3\Scripts\activate.bat"
-if exist "%USERPROFILE%\miniconda3\Scripts\activate.bat" set "CONDA_PATH=%USERPROFILE%\miniconda3\Scripts\activate.bat"
-if exist "%ProgramData%\anaconda3\Scripts\activate.bat" set "CONDA_PATH=%ProgramData%\anaconda3\Scripts\activate.bat"
-if exist "%ProgramData%\miniconda3\Scripts\activate.bat" set "CONDA_PATH=%ProgramData%\miniconda3\Scripts\activate.bat"
+REM Attempt to find Conda activation script automatically
+set "CONDA_ACTIVATE="
+for %%p in (
+    "C:\Users\%USERNAME%\anaconda3\Scripts\activate.bat"
+    "C:\ProgramData\Anaconda3\Scripts\activate.bat"
+    "%USERPROFILE%\anaconda3\Scripts\activate.bat"
+    "%LOCALAPPDATA%\Continuum\anaconda3\Scripts\activate.bat"
+) do (
+    if exist %%p (
+        REM Use ~ to strip quotes from the loop variable then set variable explicitly
+        set "CONDA_ACTIVATE=%%~p"
+        goto FoundConda
+    )
+)
 
-if defined CONDA_PATH (
-    echo [INFO] Found Conda at: %CONDA_PATH%
+:FoundConda
+if defined CONDA_ACTIVATE (
+    echo [INFO] Found Conda at: "%CONDA_ACTIVATE%"
     echo Activating Conda base environment...
-    call "%CONDA_PATH%"
+    call "%CONDA_ACTIVATE%"
 ) else (
-    echo [INFO] Could not auto-detect Conda. Assuming Python is in PATH...
+    echo [WARNING] Conda not found. Trying to use system Python...
 )
 :: --- CONDA DETECTION END ---
 
