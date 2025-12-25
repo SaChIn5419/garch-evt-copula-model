@@ -73,7 +73,14 @@ class AutomatedVineManager:
         try:
             # 1. Select Controls
             # Prune tree at level 2 to keep it interpretable and fast
-            controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.all], trunc_lvl=2)
+            # We try to use defaults if specific attributes fail
+            try:
+                # Some versions of python-pyvinecopulib expose families differently
+                controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.all], trunc_lvl=2)
+            except AttributeError:
+                # Fallback: Just use defaults which usually allow all families
+                print("[INFO] 'BicopFamily.all' not found. Using default internal family set.")
+                controls = pv.FitControlsVinecop(trunc_lvl=2)
             
             # 2. Fit the Vine
             # Structure.Select = The algo finds the Maximum Spanning Tree automatically
@@ -172,7 +179,7 @@ STRESS_PORTFOLIO = [
 def get_data(tickers):
     print(f"Fetching data for {len(tickers)} assets...")
     data = yf.download(tickers, start="2023-01-01", end="2024-01-01", auto_adjust=False)['Adj Close']
-    returns = data.pct_change().dropna()
+    returns = data.pct_change(fill_method=None).dropna()
     return returns
 
 def run_stress_test():
@@ -199,9 +206,16 @@ def run_stress_test():
     vm.diagnose_structure_logic()
     
     # 5. Fit
+    # 5. Fit
     if 'pyvinecopulib' in sys.modules:
          vm.fit_optimal_vine()
-         vm.visualize_first_tree()
+         
+         # Check if fit succeeded (model is not None)
+         if vm.model is not None:
+             vm.visualize_first_tree()
+         else:
+             print("\n[NOTE] Fitting failed despite library presence. Using Fallback NetworkX Visualization.")
+             vm.visualize_proxy_tree()
     else:
         print("\n[NOTE] pyvinecopulib missing. Using Fallback NetworkX Visualization.")
         vm.visualize_proxy_tree()
