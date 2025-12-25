@@ -1,6 +1,6 @@
 # GARCH-EVT-Copula Portfolio Optimization
 
-A "Senior Quant" level implementation of a robust portfolio optimization model that handles:
+A "Quant" level implementation of a robust portfolio optimization model that handles:
 *   **Fat Tails** (via GARCH-EVT)
 *   **Asymmetric Tail Dependence** (via Student-t Copula)
 *   **Regime Switching** (Normal vs. Extreme volatility)
