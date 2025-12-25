@@ -210,61 +210,48 @@ class AutomatedVineManager:
 # PORTFOLIO STRESS TEST CONFIGURATION
 # ==========================================
 
-# A Solid "Global Macro" Portfolio for Stress Testing
-STRESS_PORTFOLIO = [
-    '^NSEI',       # India Equity (Emerging Mkt)
-    '^GSPC',       # US Equity (Developed Mkt)
-    'GC=F',        # Gold (Safe Haven)
-    'CL=F',        # Oil (Energy/Inflation)
-    'HDFCBANK.NS', # Financials (Rate Sensitive)
-    'INFY.NS',     # Tech (Export Dnepedent)
-    'BTC-USD'      # Crypto (Speculative Liquidity)
-]
+# EXPANDED STRESS TEST DICTIONARY
+NEW_CLUSTERS = {
+    "Yen_Carry_Unwind": ['JPY=X', '^NSEI', '^GSPC'],
+    "China_Industrial": ['HG=F', 'TATASTEEL.NS', '^HSI'],
+    "Real_Estate_Rates": ['^TNX', 'DLF.NS', 'VNQ'],
+    "AI_Supply_Chain":  ['NVDA', 'TSM', 'INFY.NS'],
+    "Defensive_Rotation": ['^NSEI', 'HINDUNILVR.NS', 'ITC.NS']
+}
 
 def get_data(tickers):
     print(f"Fetching data for {len(tickers)} assets...")
-    data = yf.download(tickers, start="2023-01-01", end="2024-01-01", auto_adjust=False)['Adj Close']
-    returns = data.pct_change(fill_method=None).dropna()
-    return returns
+    try:
+        data = yf.download(tickers, start="2023-01-01", end="2024-01-01", auto_adjust=False)['Adj Close']
+        returns = data.pct_change(fill_method=None).dropna()
+        return returns
+    except Exception as e:
+        print(f"[ERROR] Data fetch failed: {e}")
+        return pd.DataFrame()
 
-def run_stress_test():
-    print("="*60)
-    print("      ADVANCED VINE COPULA STRESS TEST")
-    print("="*60)
-    
-    # 1. Get Real Market Data
-    returns = get_data(STRESS_PORTFOLIO)
-    if returns.empty:
-        print("No data fetched.")
-        return
+def run_batch_stress_test():
+    for name, tickers in NEW_CLUSTERS.items():
+        print(f"\n{'='*60}")
+        print(f"  TESTING CLUSTER: {name}")
+        print(f"{'='*60}")
+        
+        # 1. Get Data
+        try:
+            returns = get_data(tickers)
+            if returns.empty:
+                print(f"[SKIP] No data for {name}")
+                continue
+                
+            # 2. Transform to Uniform (Empirical)
+            u_data = returns.apply(lambda x: rankdata(x) / (len(x) + 1))
+            
+            # 3. Run Robust Manager
+            vm = AutomatedVineManager(u_data, u_data.columns)
+            vm.diagnose_structure_logic()
+            vm.visualize_proxy_tree() # This uses your new Bootstrap Logic
+            
+        except Exception as e:
+            print(f"[ERROR] Failed on {name}: {e}")
 
-    # 2. Transform to Uniform (Empirical Copula approach for simplicity here)
-    # In full model we used GARCH residuals, here we use raw returns ranks 
-    # to test the "Raw Dependence Structure" quickly.
-    print(f"\nTransforming {len(returns)} days of data to Uniform Ranking...")
-    u_data = returns.apply(lambda x: rankdata(x) / (len(x) + 1))
-    
-    # 3. Initialize Manager
-    vm = AutomatedVineManager(u_data, u_data.columns)
-    
-    # 4. Diagnose
-    vm.diagnose_structure_logic()
-    
-    # 5. Fit
-    # 5. Fit
-    if 'pyvinecopulib' in sys.modules:
-         vm.fit_optimal_vine()
-         
-         # Check if fit succeeded (model is not None)
-         if vm.model is not None:
-             vm.visualize_first_tree()
-         else:
-             print("\n[NOTE] Fitting failed despite library presence. Using Fallback NetworkX Visualization.")
-             vm.visualize_proxy_tree()
-    else:
-        print("\n[NOTE] pyvinecopulib missing. Using Fallback NetworkX Visualization.")
-        vm.visualize_proxy_tree()
-
-import sys
 if __name__ == "__main__":
-    run_stress_test()
+    run_batch_stress_test()
