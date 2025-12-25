@@ -107,57 +107,102 @@ class AutomatedVineManager:
         
     def visualize_proxy_tree(self):
         """
-        Fallback visualization using NetworkX if pyvinecopulib is missing.
-        Constructs a graph based on the strongest Spearman correlations (Approximating the First Tree).
+        ROBUST VISUALIZATION: Uses Bootstrapping + Hierarchical Logic
+        to prevent 'Spurious Bridges' (like Bitcoin connecting to Indian Banks).
         """
-        print("\n--- VISUALIZING STRUCTURE (Proxy Graph) ---")
-        corr_matrix = self.u.corr(method='spearman').abs()
+        print("\n--- RUNNING ROBUST STRUCTURE LEARNING (BOOTSTRAP MST) ---")
+        
+        n_bootstraps = 100
+        threshold_freq = 0.50  # Edge must appear in 50% of simulations to be real
+        min_corr_floor = 0.15  # Noise floor
+        
         n_assets = len(self.names)
-        G = nx.Graph()
+        edge_counts = {} # Key: (u, v), Value: count
         
-        # Add nodes
-        for name in self.names:
-            G.add_node(name)
+        # ---------------------------------------------------------
+        # 1. BOOTSTRAPPING LOOP
+        # ---------------------------------------------------------
+        print(f"[INFO] Running {n_bootstraps} bootstrapped topology simulations...")
+        for _ in range(n_bootstraps):
+            # Resample data with replacement (Bagging)
+            resampled_u = self.u.sample(frac=1.0, replace=True)
+            corr_matrix = resampled_u.corr(method='spearman').abs()
             
-        # Add edges for high correlations (Threshold logic to mimic MST)
-        # We greedily add the strongest links (Kruskal's algorithm-ish)
-        # to form a spanning structure.
-        edges = []
-        for i in range(n_assets):
-            for j in range(i+1, n_assets):
-                name_i = self.names[i]
-                name_j = self.names[j]
-                weight = corr_matrix.loc[name_i, name_j]
-                edges.append((name_i, name_j, weight))
-        
-        # Sort by strongest correlation
-        edges.sort(key=lambda x: x[2], reverse=True)
-        
-        # Add edges until we have a connected component (Spanning Tree Proxy)
-        # For visualization, we just show top N links to key structure
-        top_k = n_assets - 1 + 2 # Minimal spanning tree + a few loops
-        
-        print(f"Top {top_k} Strongest Dependencies:")
-        for u, v, w in edges[:top_k]:
-            G.add_edge(u, v, weight=w)
-            print(f"  {u} <--> {v} (Correlation: {w:.2f})")
+            # Build a temporary MST for this sample
+            G_temp = nx.Graph()
+            G_temp.add_nodes_from(self.names)
+            edges_temp = []
             
-        # Plot
+            for i in range(n_assets):
+                for j in range(i+1, n_assets):
+                    u, v = self.names[i], self.names[j]
+                    w = corr_matrix.loc[u, v]
+                    
+                    # FIX #3: NOISE FLOOR
+                    if w < min_corr_floor:
+                        continue
+                        
+                    # FIX #2: HIERARCHY CHECK (Heuristic)
+                    # If one is a Stock (ends in .NS) and other is Crypto/Global
+                    # penalize the weight so it prefers local index
+                    is_stock_u = ".NS" in u
+                    is_stock_v = ".NS" in v
+                    is_global_u = u in ['BTC-USD', 'GC=F', 'CL=F', '^GSPC']
+                    is_global_v = v in ['BTC-USD', 'GC=F', 'CL=F', '^GSPC']
+                    
+                    if (is_stock_u and is_global_v) or (is_stock_v and is_global_u):
+                        w = w * 0.5 # Penalize 'Stock-Global' direct links by 50%
+                        
+                    edges_temp.append((u, v, w))
+            
+            # Sort and build MST (Kruskal's logic)
+            edges_temp.sort(key=lambda x: x[2], reverse=True)
+            uf = nx.utils.UnionFind(self.names)
+            
+            for u, v, w in edges_temp:
+                if uf[u] != uf[v]:
+                    uf.union(u, v)
+                    # Count this edge
+                    pair = tuple(sorted((u, v)))
+                    edge_counts[pair] = edge_counts.get(pair, 0) + 1
+                    
+        # ---------------------------------------------------------
+        # 2. FILTERING & BUILD FINAL GRAPH
+        # ---------------------------------------------------------
+        G_final = nx.Graph()
+        G_final.add_nodes_from(self.names)
+        
+        print("\n--- ROBUST DEPENDENCIES (Stable > 50% of time) ---")
+        for (u, v), count in edge_counts.items():
+            freq = count / n_bootstraps
+            if freq > threshold_freq:
+                # Get the average correlation from original data for label
+                avg_w = self.u[[u,v]].corr(method='spearman').iloc[0,1]
+                G_final.add_edge(u, v, weight=abs(avg_w))
+                print(f"  {u} <--> {v} | Stability: {freq:.0%} | Corr: {avg_w:.2f}")
+
+        # ---------------------------------------------------------
+        # 3. PLOT
+        # ---------------------------------------------------------
         plt.figure(figsize=(10, 8))
-        pos = nx.spring_layout(G, k=0.5, seed=42)
+        pos = nx.spring_layout(G_final, k=0.6, seed=42) # k controls spacing
         
-        # Draw central nodes larger
-        centrality = nx.degree_centrality(G)
-        node_sizes = [centrality[node] * 3000 for node in G.nodes()]
+        # Color nodes by type (Visual Hierarchy)
+        node_colors = []
+        for node in G_final.nodes():
+            if node in ['^NSEI', '^GSPC']: color = '#ff9999' # Indices (Red)
+            elif '.NS' in node: color = '#99ff99' # Stocks (Green)
+            else: color = '#99ccff' # Global/Crypto (Blue)
+            node_colors.append(color)
+
+        nx.draw_networkx_nodes(G_final, pos, node_size=2000, node_color=node_colors, alpha=0.9)
+        nx.draw_networkx_edges(G_final, pos, width=2, alpha=0.6, edge_color='gray')
+        nx.draw_networkx_labels(G_final, pos, font_size=9, font_weight='bold')
         
-        nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color='skyblue', alpha=0.8)
-        nx.draw_networkx_edges(G, pos, width=2, alpha=0.5, edge_color='gray')
-        nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
+        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G_final.edges(data=True)}
+        nx.draw_networkx_edge_labels(G_final, pos, edge_labels=edge_labels, font_size=8)
         
-        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-        
-        plt.title("Estimated Vine Structure (Correlation Proxy)")
+        plt.title(f"Robust Vine Structure (Bootstrapped {n_bootstraps} times)")
         plt.axis('off')
         plt.show()
 
