@@ -10,17 +10,22 @@ A "Senior Quant" level implementation of a robust portfolio optimization model t
 *   **GARCH(1,1)** with Student-t innovations to filter volatility clustering.
 *   **Ljung-Box Test** to validate "White Noise" assumption of residuals.
 *   **Student-t Copula** (df=4) to model joint crashes (Tail Dependence).
-*   **Optimization**: Maximizes **STARR Ratio** (Excess Return / CVaR) for tail-risk adjusted returns.
-*   **Validation**: Includes **Ljung-Box Tests** for GARCH residual adequacy.
-*   **Diagnosis**: **Robust Vine Copula** analysis (via Bootstrap) to detect structural breaks (C-Vine vs D-Vine).
-*   **Backtesting**: "Crisis vs Now" feature to compare current portfolio resilience against historical crashes (e.g., COVID-19).
-*   **Pipeline**: Automated `pipeline.py` orchestrator to run the full analysis suite in one go.
+*   **Optimization**: Maximizes **STARR Ratio** (Excess Return / CVaR)## Architecture: The `QuantRiskPipeline` Class
+The project has been refactored into a single, professional-grade Python class (`QuantRiskPipeline`) that handles the entire lifecycle:
+1.  **Data Ingestion**: Automatic fetching and scaling.
+2.  **GARCH Filtering**: Volatility clustering removal.
+3.  **Vine Diagnosis**: Robust Bootstrapped MST for structure detection.
+4.  **Copula Optimization**: Student-t Simulations for Max-STARR allocation.
 
 ## Usage
-1.  Run `run_pipeline.bat` (Windows) to execute the full workflow.
-2.  Or run components individually:
-    *   `run_model.bat`: Portfolio Optimization.
-    *   `run_vine.bat`: Structural Stress Testing.
+1.  **Install Requirements:**
+    ```bash
+    pip install numpy pandas yfinance arch scipy statsmodels networkx matplotlib
+    ```
+2.  **Run the Pipeline:**
+    Double-click `run_pipeline.bat` (Windows).
+    *   **Interactive Menu**: You will be asked to select a specific crisis cluster (e.g., "1" for Yen Carry Unwind) or type "all" to run the full battery.
+    *   **Visualization**: Network graphs will popup automatically for each cluster.
 
 ## Logic
 1.  **Marginal Models**: Fits GARCH to strip volatility.

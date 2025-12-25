@@ -29,7 +29,21 @@ if defined CONDA_ACTIVATE (
     echo [WARNING] Conda not found. Trying to use system Python...
 )
 
-echo Running Full Pipeline...
-python pipeline.py
+echo.
+echo =========================================================
+echo    Select Crisis Cluster to Diagnose
+echo =========================================================
+echo    [1] Yen Carry Unwind (JPY, Nifty, SPX)
+echo    [2] China Industrial (Copper, Tata Steel, HSI)
+echo    [3] Real Estate Rates (US 10Y, DLF, REITs)
+echo    [4] AI Arms Race (Nvidia, TSMC, Infosys)
+echo    [5] Defensive Rotation (Nifty, Unilever, ITC)
+echo    [all] RUN ALL
+echo =========================================================
+set /p CLUSTER_ID="Enter Selection (1-5 or all): "
+
+echo.
+echo Running Analysis...
+python pipeline.py %CLUSTER_ID%
 
 pause
