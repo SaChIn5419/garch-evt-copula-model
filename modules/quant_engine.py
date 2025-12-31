@@ -26,20 +26,43 @@ class QuantEngine:
         
     def fetch_data(self):
         print(f"\n[1] Fetching Data for {len(self.tickers)} assets ({self.start} to {self.end})...")
-        try:
-            raw = yf.download(self.tickers, start=self.start, end=self.end, progress=False, auto_adjust=False)['Adj Close']
-            if isinstance(raw, pd.Series):
-                raw = raw.to_frame()
-            
-            # Forward fill then backwards fill to handle slight exchange holidays mismatches
-            raw = raw.ffill().bfill()
-            
-            self.returns = raw.pct_change().dropna() * 100
-            print(f"    Loaded {len(self.returns)} days. Shape: {self.returns.shape}")
-            return self.returns
-        except Exception as e:
-            print(f"    [ERROR] Data fetch failed: {e}")
-            return pd.DataFrame()
+        import time
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            try:
+                # Attempt download
+                raw = yf.download(self.tickers, start=self.start, end=self.end, progress=False, auto_adjust=False)['Adj Close']
+                
+                if isinstance(raw, pd.Series):
+                    raw = raw.to_frame()
+                
+                # Check if we actually got data for all tickers
+                missing_tickers = [t for t in self.tickers if t not in raw.columns]
+                if missing_tickers:
+                    print(f"    [WARNING] Attempt {attempt+1}: Missing data for {missing_tickers}. Retrying...")
+                    time.sleep(2)
+                    continue
+
+                # Forward fill then backwards fill to handle slight exchange holidays mismatches
+                raw = raw.ffill().bfill()
+                
+                self.returns = raw.pct_change().dropna() * 100
+                
+                if self.returns.empty:
+                     print(f"    [WARNING] Attempt {attempt+1}: Data loaded but resulted in empty returns (likely alignment issue). Retrying...")
+                     time.sleep(2)
+                     continue
+                     
+                print(f"    Loaded {len(self.returns)} days. Shape: {self.returns.shape}")
+                return self.returns
+
+            except Exception as e:
+                print(f"    [WARNING] Attempt {attempt+1} failed: {e}")
+                time.sleep(2)
+        
+        print("    [ERROR] All data fetch attempts failed.")
+        return pd.DataFrame()
 
     def fit_garch(self):
         print("\n[2] GARCH(1,1) Filtering (Removing Volatility Clusters)...")
