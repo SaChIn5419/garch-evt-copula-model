@@ -8,6 +8,7 @@ This file is the running handoff log for the project. It records what changed, w
 - Keep the latest project state and next step near the top.
 - Update this file before wrapping a work session.
 - Use this file as the primary resume point for future work.
+- Keep the top-level `summary.md` updated as the short journey view for the project.
 
 ## Current State
 
@@ -34,6 +35,9 @@ Validated So Far:
   - `implementation_plan.md`
   - the current migration direction toward `GJR-GARCH + EVT + copula`
 - Local regression tests pass with `python -m unittest discover -s tests -v`.
+- Real cached-data walk-forward comparisons completed for:
+  - `us_stress` over a recent 60-day out-of-sample slice
+  - `india_primary` over a recent 60-day out-of-sample slice
 
 Known Gaps / Risks:
 - Current repo still has a split between new canonical code and legacy code paths.
@@ -43,8 +47,8 @@ Known Gaps / Risks:
 Recommended Next Step:
 - Expand the validation comparison beyond the initial bounded `us_stress` slice:
   - rerun on a larger out-of-sample window
-  - run the same comparison on `india_primary`
   - inspect whether the package baseline warnings point to a tuning issue or a structural data issue
+  - decide whether the package baseline should remain only a validation reference rather than a practical fallback
 
 ## Milestones
 
@@ -160,3 +164,48 @@ Artifacts:
 Last Left At:
 - First real cached-data comparison is complete.
 - Next step is to widen the comparison window and repeat it for `india_primary` before drawing stronger conclusions about model superiority.
+
+### 2026-04-01 - India primary comparison confirms stronger GJR signal
+
+Summary:
+- Ran the same bounded walk-forward comparison on `india_primary` using cached data and the existing comparison harness.
+- The `india_primary` result shows a much clearer separation between the plain-GARCH baseline and the custom GJR implementation than `us_stress`.
+
+Files Changed:
+- `PROJECT_LOG.md`
+- `summary.md`
+- `results_validation/india_primary_2021-09-24_2023-12-29/`
+
+Result Snapshot:
+- Basket: `india_primary`
+- OOS observations: `60`
+- `garch_baseline`:
+  - breaches: `5`
+  - breach rate: `0.0833`
+  - exception clusters: `4`
+  - Kupiec p-value: `0.00036`
+  - Christoffersen p-value: `0.2996`
+  - convergence rate: `0.8633`
+  - fallback rate: `0.1367`
+- `gjr_custom`:
+  - breaches: `1`
+  - breach rate: `0.0167`
+  - exception clusters: `1`
+  - Kupiec p-value: `0.6357`
+  - Christoffersen p-value: `0.8527`
+  - convergence rate: `1.0000`
+  - fallback rate: `0.0000`
+
+Interpretation:
+- This is the first result in the project where the custom GJR path is not just more stable operationally, but also clearly better on risk-backtest behavior than the plain-GARCH baseline.
+- On this bounded `india_primary` slice, plain GARCH materially underestimates risk and fails the Kupiec calibration test, while the custom GJR path remains well-calibrated.
+
+Artifacts:
+- `results_validation/india_primary_2021-09-24_2023-12-29/comparison.md`
+- `results_validation/india_primary_2021-09-24_2023-12-29/comparison.json`
+
+Last Left At:
+- The cross-basket picture is now:
+  - `us_stress`: tie on breaches, GJR more stable
+  - `india_primary`: GJR clearly better on both stability and calibration
+- Next step is to widen the out-of-sample window before making a stronger project-level claim about model superiority.
