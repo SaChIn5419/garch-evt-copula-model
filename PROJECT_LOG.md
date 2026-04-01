@@ -38,6 +38,8 @@ Validated So Far:
 - Real cached-data walk-forward comparisons completed for:
   - `us_stress` over a recent 60-day out-of-sample slice
   - `india_primary` over a recent 60-day out-of-sample slice
+  - `us_stress` over a widened 120-day out-of-sample slice
+  - `india_primary` over a widened 120-day out-of-sample slice
 
 Known Gaps / Risks:
 - Current repo still has a split between new canonical code and legacy code paths.
@@ -45,10 +47,10 @@ Known Gaps / Risks:
 - Regime logic from the paper is still not integrated into the new canonical `src/` stack.
 
 Recommended Next Step:
-- Expand the validation comparison beyond the initial bounded `us_stress` slice:
-  - rerun on a larger out-of-sample window
-  - inspect whether the package baseline warnings point to a tuning issue or a structural data issue
+- Investigate the `arch` baseline instability directly:
+  - determine whether the warning-heavy fallback pattern is driven by optimizer settings, scaling, or basket structure
   - decide whether the package baseline should remain only a validation reference rather than a practical fallback
+  - consider suppressing or routing expected baseline warnings into diagnostics rather than terminal noise
 
 ## Milestones
 
@@ -209,3 +211,40 @@ Last Left At:
   - `us_stress`: tie on breaches, GJR more stable
   - `india_primary`: GJR clearly better on both stability and calibration
 - Next step is to widen the out-of-sample window before making a stronger project-level claim about model superiority.
+
+### 2026-04-01 - Widened 120-day comparison strengthens the GJR case
+
+Summary:
+- Widened the walk-forward validation window from 60 out-of-sample days to 120 out-of-sample days for both baskets using the existing comparison harness.
+- Fixed a comparison-artifact bug where `comparison.json` could fail on `NaN` metrics.
+
+Files Changed:
+- `compare_walkforward_models.py`
+- `PROJECT_LOG.md`
+- `summary.md`
+- `results_validation/us_stress_2021-07-15_2023-12-29/`
+- `results_validation/india_primary_2021-06-28_2023-12-29/`
+
+Result Snapshot:
+- `us_stress`, 120 OOS days:
+  - `garch_baseline`: 2 breaches, breach rate `0.0167`, fallback rate `0.0181`
+  - `gjr_custom`: 0 breaches, breach rate `0.0000`, fallback rate `0.0000`
+- `india_primary`, 120 OOS days:
+  - `garch_baseline`: 11 breaches, breach rate `0.0917`, Kupiec p-value `4.38e-08`, fallback rate `0.1217`
+  - `gjr_custom`: 3 breaches, breach rate `0.0250`, Kupiec p-value `0.1653`, fallback rate `0.0000`
+
+Interpretation:
+- The wider window strengthens the project-level case for the custom GJR path.
+- `us_stress`: GJR remains more stable and is now also better on breaches.
+- `india_primary`: GJR remains materially better on both calibration and operational stability.
+- The package-backed plain-GARCH baseline is still useful as a benchmark, but it is currently not a credible production fallback on these baskets.
+
+Artifacts:
+- `results_validation/us_stress_2021-07-15_2023-12-29/comparison.md`
+- `results_validation/india_primary_2021-06-28_2023-12-29/comparison.md`
+
+Last Left At:
+- The validation story is now stronger and cross-basket:
+  - `us_stress` 120-day: GJR better
+  - `india_primary` 120-day: GJR clearly better
+- Next step is to investigate why the `arch` plain-GARCH baseline is so unstable on these baskets before deciding whether to keep it as anything more than a benchmark.

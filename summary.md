@@ -117,3 +117,57 @@ Artifacts:
 - Expand the GARCH vs GJR comparison to a larger out-of-sample window.
 - Investigate whether package-baseline convergence warnings are tuning-related or structural.
 - Only after stronger validation, decide whether to add regime logic into the new canonical stack.
+
+## Widened 120-Day Comparison
+
+The comparison has now been widened to 120 out-of-sample days for both baskets.
+
+### `us_stress`
+
+- Plain GARCH:
+  - `2` VaR breaches over `120` observations
+  - fallback rate: `0.0181`
+- Custom GJR:
+  - `0` VaR breaches over `120` observations
+  - fallback rate: `0.0000`
+
+Interpretation:
+- On the wider `us_stress` window, GJR moved from “similar breach count but more stable” to clearly better on both stability and breaches.
+
+Artifacts:
+- `results_validation/us_stress_2021-07-15_2023-12-29/comparison.md`
+
+### `india_primary`
+
+- Plain GARCH:
+  - `11` VaR breaches over `120` observations
+  - breach rate: `0.0917`
+  - Kupiec p-value: `4.38e-08`
+  - fallback rate: `0.1217`
+- Custom GJR:
+  - `3` VaR breaches over `120` observations
+  - breach rate: `0.0250`
+  - Kupiec p-value: `0.1653`
+  - fallback rate: `0.0000`
+
+Interpretation:
+- The widened `india_primary` window strengthens the earlier result.
+- Plain GARCH remains badly calibrated, while custom GJR remains far more stable and materially better calibrated.
+
+Artifacts:
+- `results_validation/india_primary_2021-06-28_2023-12-29/comparison.md`
+
+## Updated Position
+
+The project is now past the point of “promising direction only.”
+
+Current evidence across the widened validation windows says:
+- custom GJR is more stable than the plain-GARCH benchmark on both baskets
+- custom GJR is better calibrated on `india_primary`
+- custom GJR is now also better on breaches for `us_stress`
+
+## Revised Next Steps
+
+- Investigate why the `arch` plain-GARCH baseline is so warning-heavy and fallback-prone on these baskets.
+- Decide whether the baseline should remain only a validation benchmark rather than a production fallback.
+- Only after that, decide whether to move into regime logic or additional strategy layers.

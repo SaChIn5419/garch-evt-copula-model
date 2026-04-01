@@ -41,7 +41,17 @@ def _write_comparison_summary(output_dir: Path, basket_name: str, frame: pd.Data
     output_dir.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output_dir / "comparison.csv", index=False)
 
-    records = frame.where(pd.notna(frame), None).to_dict(orient="records")
+    records: list[dict[str, object]] = []
+    for _, row in frame.iterrows():
+        record: dict[str, object] = {}
+        for key, value in row.items():
+            if key == "model":
+                record[key] = value
+            elif pd.isna(value):
+                record[key] = None
+            else:
+                record[key] = float(value)
+        records.append(record)
     with open(output_dir / "comparison.json", "w", encoding="ascii") as f:
         json.dump({"basket": basket_name, "models": records}, f, indent=2, allow_nan=False)
 
