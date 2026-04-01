@@ -45,12 +45,10 @@ Known Gaps / Risks:
 - Current repo still has a split between new canonical code and legacy code paths.
 - No live market-data end-to-end run was executed in this session because the environment is network-restricted.
 - Regime logic from the paper is still not integrated into the new canonical `src/` stack.
+- Some previously logged GARCH-vs-GJR conclusions need to be interpreted carefully because the original `arch` baseline wrapper used `rescale=False` on very small decimal log returns.
 
 Recommended Next Step:
-- Investigate the `arch` baseline instability directly:
-  - determine whether the warning-heavy fallback pattern is driven by optimizer settings, scaling, or basket structure
-  - decide whether the package baseline should remain only a validation reference rather than a practical fallback
-  - consider suppressing or routing expected baseline warnings into diagnostics rather than terminal noise
+- Re-run the wider 120-day comparisons with the corrected rescaled `arch` baseline before making any stronger claim about GJR superiority.
 
 ## Milestones
 
@@ -248,3 +246,40 @@ Last Left At:
   - `us_stress` 120-day: GJR better
   - `india_primary` 120-day: GJR clearly better
 - Next step is to investigate why the `arch` plain-GARCH baseline is so unstable on these baskets before deciding whether to keep it as anything more than a benchmark.
+
+### 2026-04-01 - Arch baseline instability traced to scaling choice
+
+Summary:
+- Investigated why the package-backed plain-GARCH baseline was warning-heavy and fallback-prone.
+- Found that the dominant issue was not plain GARCH itself, but the wrapper fitting Student-t `arch` models on small decimal log returns with `rescale=False`.
+- Updated `ArchVolatilityModel` to use `rescale=True` by default.
+
+Files Changed:
+- `src/volatility.py`
+- `PROJECT_LOG.md`
+- `summary.md`
+- `results_validation_rescaled/us_stress_2021-10-08_2023-12-29/`
+- `results_validation_rescaled/india_primary_2021-09-24_2023-12-29/`
+
+Investigation Findings:
+- Previously failed windows recovered when either:
+  - `arch` was allowed to internally rescale the data, or
+  - the same data was manually scaled by `x100`
+- Recovery check on previously failed windows:
+  - `us_stress`: `13/13` failed windows recovered with rescaled Student-t
+  - `india_primary`: `73/73` failed windows recovered with rescaled Student-t
+- The known problematic windows for:
+  - `JPM` on `2023-11-09`
+  - `^NSEI` on `2023-09-07`
+  both fit cleanly after the wrapper change.
+
+Corrected Interpretation:
+- The earlier fallback-heavy baseline comparisons overstated the advantage of the custom GJR path because the baseline wrapper itself was handicapped by poor scaling.
+- On re-run 60-day slices with the rescaled baseline:
+  - `us_stress`: plain GARCH had `0` breaches vs `1` for GJR
+  - `india_primary`: plain GARCH had `0` breaches vs `1` for GJR
+- That means the question is no longer “why is the baseline broken?” but “how does corrected plain GARCH compare to custom GJR on the wider 120-day windows?”
+
+Last Left At:
+- The baseline instability root cause is identified and patched.
+- Next step is to rerun the wider comparisons with the corrected baseline before making any further model-selection claims.

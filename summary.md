@@ -166,8 +166,34 @@ Current evidence across the widened validation windows says:
 - custom GJR is better calibrated on `india_primary`
 - custom GJR is now also better on breaches for `us_stress`
 
+## Baseline Investigation Update
+
+The package-backed plain-GARCH baseline was investigated because it was generating too many warnings and fallbacks.
+
+What caused it:
+- the wrapper was fitting `arch` on small decimal log returns
+- it was using Student-t innovations with `rescale=False`
+- that combination was causing many optimizer failures that were not inherent to plain GARCH itself
+
+What fixed it:
+- enabling `rescale=True` in the `arch` wrapper
+
+What changed after the fix:
+- previously failed windows recovered almost completely under internal rescaling
+- the known bad windows for `JPM` and `^NSEI` fit cleanly after the wrapper change
+
+Important consequence:
+- some earlier conclusions that favored custom GJR were partly inflated by a wrapper issue in the baseline benchmark
+- after fixing the baseline scaling and rerunning the 60-day slices:
+  - `us_stress`: rescaled plain GARCH had `0` breaches vs `1` for GJR
+  - `india_primary`: rescaled plain GARCH had `0` breaches vs `1` for GJR
+
+So the current honest position is:
+- the baseline instability problem is understood and patched
+- the earlier comparison story must be revalidated on the wider windows using the corrected baseline
+
 ## Revised Next Steps
 
-- Investigate why the `arch` plain-GARCH baseline is so warning-heavy and fallback-prone on these baskets.
-- Decide whether the baseline should remain only a validation benchmark rather than a production fallback.
+- Re-run the widened 120-day comparisons using the corrected rescaled baseline.
+- Reassess GJR vs plain GARCH only after those corrected wider-window results are available.
 - Only after that, decide whether to move into regime logic or additional strategy layers.

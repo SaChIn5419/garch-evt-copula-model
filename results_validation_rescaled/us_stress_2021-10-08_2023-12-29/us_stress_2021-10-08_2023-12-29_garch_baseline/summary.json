@@ -1,0 +1,22 @@
+{
+  "n_obs": 60.0,
+  "n_breaches": 0.0,
+  "breach_rate": 0.0,
+  "portfolio_exception_clusters": 0.0,
+  "kupiec_lr": null,
+  "kupiec_pvalue": null,
+  "christoffersen_lr": -0.0,
+  "christoffersen_pvalue": 1.0,
+  "n00": 59.0,
+  "n01": 0.0,
+  "n10": 0.0,
+  "n11": 0.0,
+  "portfolio_cvar_breach_rate": 0.0,
+  "mean_absolute_net_exposure": 0.0,
+  "mean_gross_exposure": 1.0,
+  "asset_fit_convergence_rate": 1.0,
+  "asset_fit_fallback_rate": 0.0,
+  "mean_persistence": 0.967880900649523,
+  "mean_optimizer_iterations": 15.46111111111111,
+  "evt_usage_rate": 1.0
+}

@@ -163,6 +163,7 @@ class ArchVolatilityModel:
         asymmetry: bool = False,
         maxiter: int = MODEL_MAXITER,
         tol: float = MODEL_TOL,
+        rescale: bool = True,
     ) -> None:
         self.p = p
         self.q = q
@@ -170,6 +171,7 @@ class ArchVolatilityModel:
         self.asymmetry = asymmetry
         self.maxiter = maxiter
         self.tol = tol
+        self.rescale = rescale
 
     def _fallback_forecast(self, clean: pd.Series, asset_name: str, message: str) -> VolatilityForecast:
         residuals = clean.to_numpy(dtype=float) - float(clean.mean())
@@ -226,7 +228,7 @@ class ArchVolatilityModel:
                 o=1 if self.asymmetry else 0,
                 q=self.q,
                 dist="t" if self.dist == "studentt" else "normal",
-                rescale=False,
+                rescale=self.rescale,
             ).fit(disp="off", options={"maxiter": self.maxiter, "ftol": self.tol})
         except Exception as exc:
             return self._fallback_forecast(clean, asset_name, f"fallback:model_fit_error:{exc}")
@@ -259,7 +261,11 @@ class ArchVolatilityModel:
             or (not np.all(np.isfinite(conditional_variance)))
         )
         if invalid:
-            return self._fallback_forecast(clean, asset_name, "fallback:invalid_arch_fit")
+            return self._fallback_forecast(
+                clean,
+                asset_name,
+                f"fallback:invalid_arch_fit:flag={result.convergence_flag}",
+            )
 
         return VolatilityForecast(
             asset=asset_name,
