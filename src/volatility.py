@@ -234,6 +234,7 @@ class ArchVolatilityModel:
             return self._fallback_forecast(clean, asset_name, f"fallback:model_fit_error:{exc}")
 
         params = result.params
+        scale = float(getattr(result, "scale", 1.0))
         alpha = np.array([self._get_param(params, "alpha", i + 1) for i in range(self.q)], dtype=float)
         gamma = np.array(
             [self._get_param(params, "gamma", i + 1) for i in range(1 if self.asymmetry else 0)],
@@ -245,10 +246,12 @@ class ArchVolatilityModel:
             gamma = np.pad(gamma, (0, self.q - gamma.size))
         beta = np.array([self._get_param(params, "beta", i + 1) for i in range(self.p)], dtype=float)
 
-        variance_forecast = float(result.forecast(horizon=1, reindex=False).variance.values[-1, 0])
+        variance_forecast_scaled = float(result.forecast(horizon=1, reindex=False).variance.values[-1, 0])
+        variance_forecast = variance_forecast_scaled / (scale * scale)
         volatility_forecast = float(np.sqrt(max(variance_forecast, 1e-18)))
         standardized = np.asarray(result.std_resid, dtype=float)
-        conditional_variance = np.asarray(result.conditional_volatility, dtype=float) ** 2
+        residuals = np.asarray(result.resid, dtype=float) / scale
+        conditional_variance = (np.asarray(result.conditional_volatility, dtype=float) / scale) ** 2
         converged = int(result.convergence_flag) == 0
         persistence = float(alpha.sum() + 0.5 * gamma.sum() + beta.sum())
         nu = params.get("nu")
@@ -269,11 +272,11 @@ class ArchVolatilityModel:
 
         return VolatilityForecast(
             asset=asset_name,
-            mean_forecast=float(params.get("mu", clean.mean())),
+            mean_forecast=float(params.get("mu", clean.mean() * scale)) / scale,
             variance_forecast=variance_forecast,
             volatility_forecast=volatility_forecast,
             standardized_residuals=standardized,
-            residuals=np.asarray(result.resid, dtype=float),
+            residuals=residuals,
             conditional_variance=conditional_variance,
             converged=converged,
             message="ok",
@@ -286,14 +289,15 @@ class ArchVolatilityModel:
             optimizer_nit=int(getattr(result.optimization_result, "nit", 0)),
             fallback_used=False,
             params={
-                "mu": float(params.get("mu", clean.mean())),
-                "omega": float(params.get("omega", np.nan)),
+                "mu": float(params.get("mu", clean.mean() * scale)) / scale,
+                "omega": float(params.get("omega", np.nan)) / (scale * scale),
                 "alpha": alpha,
                 "gamma": gamma,
                 "beta": beta,
                 "dist": self.dist,
                 "p": self.p,
                 "q": self.q,
+                "scale": scale,
                 **({"nu": float(nu)} if nu is not None else {}),
             },
         )

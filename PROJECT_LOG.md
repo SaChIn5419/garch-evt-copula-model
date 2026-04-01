@@ -48,7 +48,7 @@ Known Gaps / Risks:
 - Some previously logged GARCH-vs-GJR conclusions need to be interpreted carefully because the original `arch` baseline wrapper used `rescale=False` on very small decimal log returns.
 
 Recommended Next Step:
-- Investigate why the corrected rescaled plain-GARCH baseline is now dominating the custom GJR path on these validation slices.
+- Use the new direct diagnostics to identify which parts of the custom GJR engine are actually hurting performance relative to corrected plain GARCH.
 
 ## Milestones
 
@@ -317,3 +317,46 @@ Artifacts:
 Last Left At:
 - The project now has a corrected benchmark, and that benchmark currently performs at least as well as, and on `india_primary` better than, the custom GJR path on the tested windows.
 - Next step is to diagnose why the custom GJR engine is underperforming relative to corrected plain GARCH before adding any new modeling layer.
+
+### 2026-04-01 - Direct India diagnostics added for model understanding
+
+Summary:
+- Added a dedicated diagnostic comparison for `india_primary` so plain GARCH and custom GJR can be inspected visually on the same windows.
+- Fixed another baseline-wrapper issue: when `arch` internally rescales data, the wrapper now maps forecasts and conditional variances back to original return units.
+
+Files Changed:
+- `src/volatility.py`
+- `compare_india_diagnostics.py`
+- `PROJECT_LOG.md`
+- `summary.md`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/`
+
+Diagnostic Artifacts:
+- `volatility_forecast_panel.png`
+- `persistence_panel.png`
+- `residual_variance_panel.png`
+- `residual_sq_acf_panel.png`
+- `diagnostic_summary.md`
+
+Diagnostic Takeaways:
+- Forecast volatility levels are now directly comparable in original units and are fairly close between models.
+- Persistence differences are asset-specific rather than uniformly in favor of GJR.
+- Standardized residual variance is near `1` for both models across assets.
+- Squared standardized residual lag-1 autocorrelation is mixed by asset; GJR is not showing a clear blanket improvement.
+- Both models converged cleanly with zero fallbacks in the corrected diagnostic run.
+
+Interpretation:
+- The new visual and diagnostic layer is now sufficient for model comparison.
+- At this point, custom GJR does not have a clear diagnostic edge over corrected plain GARCH on `india_primary`.
+- The remaining work should focus on identifying whether the custom GJR implementation has a specification issue, a forecasting issue, or simply no empirical advantage on these baskets.
+
+Artifacts:
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/diagnostic_summary.md`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/volatility_forecast_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/persistence_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/residual_variance_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/residual_sq_acf_panel.png`
+
+Last Left At:
+- The project now has backtest comparisons plus direct model-diagnostic visuals.
+- Next step is to decide whether to keep investing in the custom GJR engine or revert the default marginal model back to corrected plain GARCH.

@@ -232,6 +232,28 @@ The current priority is:
 - understand why the custom GJR path is underperforming a corrected plain-GARCH benchmark
 - only then decide whether custom GJR should remain the preferred marginal model
 
+## Direct Diagnostic Visuals
+
+The project now also has direct model-diagnostic visuals for `india_primary`, not just backtest summaries.
+
+Artifacts:
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/volatility_forecast_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/persistence_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/residual_variance_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/residual_sq_acf_panel.png`
+- `results_diagnostics/india_primary_diagnostics_2021-06-28_2023-12-29/diagnostic_summary.md`
+
+What they show:
+- forecast volatility levels are close between corrected plain GARCH and custom GJR
+- persistence differences are mixed by asset, not uniformly favorable to GJR
+- standardized residual variance is close to `1` for both models
+- squared-residual autocorrelation is mixed, with no obvious blanket advantage for GJR
+
+Current reading:
+- we now have enough visuals to understand the comparison properly
+- the diagnostics do not show a clear structural advantage for the custom GJR engine on `india_primary`
+- the model-selection question is now empirical and implementation-focused, not architectural
+
 ## Revised Next Steps
 
 - Diagnose why the custom GJR engine is underperforming corrected plain GARCH on `india_primary`.
