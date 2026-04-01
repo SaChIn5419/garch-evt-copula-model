@@ -1,6 +1,8 @@
+.cache/
+.codex
 __pycache__/
-*.py[cod]
-*$py.class
-*.log
-.ipynb_checkpoints/
+*.pyc
+.DS_Store
+output.txt
 results/
+results_test/
