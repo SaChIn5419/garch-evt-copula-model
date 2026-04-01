@@ -161,10 +161,7 @@ Artifacts:
 
 The project is now past the point of “promising direction only.”
 
-Current evidence across the widened validation windows says:
-- custom GJR is more stable than the plain-GARCH benchmark on both baskets
-- custom GJR is better calibrated on `india_primary`
-- custom GJR is now also better on breaches for `us_stress`
+Earlier widened comparisons had suggested an advantage for custom GJR, but that conclusion was based on a flawed non-rescaled baseline wrapper and is no longer the current project view.
 
 ## Baseline Investigation Update
 
@@ -192,8 +189,51 @@ So the current honest position is:
 - the baseline instability problem is understood and patched
 - the earlier comparison story must be revalidated on the wider windows using the corrected baseline
 
+## Corrected 120-Day Rerun
+
+The widened 120-day comparisons were rerun after fixing the `arch` baseline scaling issue.
+
+### Corrected `us_stress` result
+
+- Rescaled plain GARCH:
+  - `0` breaches
+  - fallback rate `0.0000`
+- Custom GJR:
+  - `0` breaches
+  - fallback rate `0.0000`
+
+Interpretation:
+- On `us_stress`, the corrected benchmark and custom GJR are tied on the widened validation window.
+
+### Corrected `india_primary` result
+
+- Rescaled plain GARCH:
+  - `0` breaches
+  - fallback rate `0.0000`
+- Custom GJR:
+  - `3` breaches
+  - breach rate `0.0250`
+  - fallback rate `0.0000`
+
+Interpretation:
+- On `india_primary`, corrected plain GARCH is now better than the custom GJR path on the widened validation window.
+
+## Corrected Position
+
+The project-level model-selection story has changed.
+
+After fixing the baseline scaling issue:
+- plain GARCH is no longer unstable on these baskets
+- custom GJR is not currently superior on the corrected widened comparisons
+- the strongest current result is actually that corrected plain GARCH outperforms custom GJR on `india_primary`
+
+That means the current priority is no longer “prove GJR is better.”
+The current priority is:
+- understand why the custom GJR path is underperforming a corrected plain-GARCH benchmark
+- only then decide whether custom GJR should remain the preferred marginal model
+
 ## Revised Next Steps
 
-- Re-run the widened 120-day comparisons using the corrected rescaled baseline.
-- Reassess GJR vs plain GARCH only after those corrected wider-window results are available.
+- Diagnose why the custom GJR engine is underperforming corrected plain GARCH on `india_primary`.
+- Compare conditional variances, persistence, and residual diagnostics between the two engines on the same windows.
 - Only after that, decide whether to move into regime logic or additional strategy layers.

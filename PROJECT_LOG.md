@@ -48,7 +48,7 @@ Known Gaps / Risks:
 - Some previously logged GARCH-vs-GJR conclusions need to be interpreted carefully because the original `arch` baseline wrapper used `rescale=False` on very small decimal log returns.
 
 Recommended Next Step:
-- Re-run the wider 120-day comparisons with the corrected rescaled `arch` baseline before making any stronger claim about GJR superiority.
+- Investigate why the corrected rescaled plain-GARCH baseline is now dominating the custom GJR path on these validation slices.
 
 ## Milestones
 
@@ -283,3 +283,37 @@ Corrected Interpretation:
 Last Left At:
 - The baseline instability root cause is identified and patched.
 - Next step is to rerun the wider comparisons with the corrected baseline before making any further model-selection claims.
+
+### 2026-04-01 - Corrected 120-day rerun reverses the earlier model-selection claim
+
+Summary:
+- Re-ran the widened 120-day comparisons for both baskets after fixing the `arch` baseline scaling issue.
+- The corrected results materially changed the project-level interpretation.
+
+Files Changed:
+- `PROJECT_LOG.md`
+- `summary.md`
+- `results_validation_rescaled/us_stress_2021-07-15_2023-12-29/`
+- `results_validation_rescaled/india_primary_2021-06-28_2023-12-29/`
+
+Corrected 120-Day Results:
+- `us_stress`:
+  - `garch_baseline`: `0` breaches, fallback rate `0.0000`
+  - `gjr_custom`: `0` breaches, fallback rate `0.0000`
+- `india_primary`:
+  - `garch_baseline`: `0` breaches, fallback rate `0.0000`
+  - `gjr_custom`: `3` breaches, breach rate `0.0250`, fallback rate `0.0000`
+
+Interpretation:
+- After correcting the baseline scaling issue, the earlier evidence favoring custom GJR does not hold on these widened validation windows.
+- On `us_stress`, the models are tied on breaches and both are operationally stable.
+- On `india_primary`, corrected plain GARCH is now strictly better on breaches than the custom GJR path.
+- The honest current conclusion is that the custom GJR engine is not yet validated as superior to a correctly specified plain-GARCH benchmark.
+
+Artifacts:
+- `results_validation_rescaled/us_stress_2021-07-15_2023-12-29/comparison.md`
+- `results_validation_rescaled/india_primary_2021-06-28_2023-12-29/comparison.md`
+
+Last Left At:
+- The project now has a corrected benchmark, and that benchmark currently performs at least as well as, and on `india_primary` better than, the custom GJR path on the tested windows.
+- Next step is to diagnose why the custom GJR engine is underperforming relative to corrected plain GARCH before adding any new modeling layer.
