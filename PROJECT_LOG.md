@@ -41,12 +41,10 @@ Known Gaps / Risks:
 - Regime logic from the paper is still not integrated into the new canonical `src/` stack.
 
 Recommended Next Step:
-- Run the first real basket backtest through the hardened `src/` path and compare:
-  - old plain-GARCH workflow vs current GJR workflow
-  - breach rate
-  - Kupiec p-value
-  - Christoffersen p-value
-  - exception clustering
+- Expand the validation comparison beyond the initial bounded `us_stress` slice:
+  - rerun on a larger out-of-sample window
+  - run the same comparison on `india_primary`
+  - inspect whether the package baseline warnings point to a tuning issue or a structural data issue
 
 ## Milestones
 
@@ -118,3 +116,47 @@ Verification:
 Last Left At:
 - Hardened first version is ready to be curated into the initial Git milestone.
 - Next step is to stage only the intended project files, commit, and push to GitHub.
+
+### 2026-04-01 - First real GARCH vs GJR validation harness
+
+Summary:
+- Added a package-backed baseline volatility model using `arch` so the custom GJR engine can be compared against a plain-GARCH benchmark under the same walk-forward backtest.
+- Added a bounded comparison runner that uses cached basket data and writes side-by-side validation artifacts.
+- Executed the first real comparison on `us_stress` using a 500-day training window plus the most recent 60 out-of-sample days.
+
+Files Changed:
+- `src/volatility.py`
+- `compare_walkforward_models.py`
+- `tests/test_volatility.py`
+- `results_validation/us_stress_2021-10-08_2023-12-29/`
+
+Result Snapshot:
+- Basket: `us_stress`
+- OOS observations: `60`
+- Models compared:
+  - `garch_baseline`
+  - `gjr_custom`
+- Both models produced:
+  - `1` VaR breach
+  - breach rate `0.0167`
+  - Kupiec p-value `0.6357`
+  - Christoffersen p-value `0.8527`
+  - `1` exception cluster
+- Stability difference:
+  - `garch_baseline` fallback rate: `0.0194`
+  - `gjr_custom` fallback rate: `0.0000`
+  - `garch_baseline` convergence rate: `0.9806`
+  - `gjr_custom` convergence rate: `1.0000`
+
+Interpretation:
+- On this initial bounded slice, custom GJR is not yet better on breach counts than plain GARCH, but it is currently more operationally stable in the new engine.
+- This is encouraging, but it is not yet strong statistical evidence because the validation window is still small.
+
+Artifacts:
+- `results_validation/us_stress_2021-10-08_2023-12-29/comparison.md`
+- `results_validation/us_stress_2021-10-08_2023-12-29/comparison.json`
+- per-model backtest outputs saved under the same directory
+
+Last Left At:
+- First real cached-data comparison is complete.
+- Next step is to widen the comparison window and repeat it for `india_primary` before drawing stronger conclusions about model superiority.
