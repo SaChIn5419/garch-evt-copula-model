@@ -1,0 +1,37 @@
+# Copula Family Comparison: us_stress
+
+## gaussian
+
+- n_obs: 252.0
+- n_breaches: 8.0
+- breach_rate: 0.031746031746031744
+- portfolio_exception_clusters: 8.0
+- kupiec_pvalue: 0.005695561131296212
+- christoffersen_pvalue: 0.4679366682502756
+- portfolio_cvar_breach_rate: 0.011904761904761904
+- asset_fit_convergence_rate: 1.0
+- asset_fit_fallback_rate: 0.0
+- mean_gross_exposure: 1.0
+- mean_absolute_net_exposure: 0.0
+- evt_usage_rate: 1.0
+- mean_copula_avg_abs_correlation: 0.5121184705476286
+- mean_copula_max_abs_correlation: 0.8874837554336877
+- mean_copula_lower_tail_dependence: 0.014392063492063494
+
+## studentt
+
+- n_obs: 252.0
+- n_breaches: 5.0
+- breach_rate: 0.01984126984126984
+- portfolio_exception_clusters: 5.0
+- kupiec_pvalue: 0.16624023954521094
+- christoffersen_pvalue: 0.6520974168479388
+- portfolio_cvar_breach_rate: 0.003968253968253968
+- asset_fit_convergence_rate: 1.0
+- asset_fit_fallback_rate: 0.0
+- mean_gross_exposure: 1.0
+- mean_absolute_net_exposure: 0.0
+- evt_usage_rate: 1.0
+- mean_copula_avg_abs_correlation: 0.4967454163306442
+- mean_copula_max_abs_correlation: 0.8810656597404759
+- mean_copula_lower_tail_dependence: 0.014392063492063494

@@ -1,0 +1,41 @@
+{
+  "basket": "india_primary",
+  "copulas": [
+    {
+      "copula_family": "gaussian",
+      "n_obs": 120.0,
+      "n_breaches": 3.0,
+      "breach_rate": 0.025,
+      "portfolio_exception_clusters": 3.0,
+      "kupiec_pvalue": 0.16528938816877958,
+      "christoffersen_pvalue": 0.6936244074325746,
+      "portfolio_cvar_breach_rate": 0.008333333333333333,
+      "asset_fit_convergence_rate": 1.0,
+      "asset_fit_fallback_rate": 0.0,
+      "mean_gross_exposure": 1.0,
+      "mean_absolute_net_exposure": 0.0,
+      "evt_usage_rate": 1.0,
+      "mean_copula_avg_abs_correlation": 0.5062020921790586,
+      "mean_copula_max_abs_correlation": 0.8362967511134507,
+      "mean_copula_lower_tail_dependence": 0.015893333333333336
+    },
+    {
+      "copula_family": "studentt",
+      "n_obs": 120.0,
+      "n_breaches": 1.0,
+      "breach_rate": 0.008333333333333333,
+      "portfolio_exception_clusters": 1.0,
+      "kupiec_pvalue": 0.8501500594233184,
+      "christoffersen_pvalue": 0.8964163512150056,
+      "portfolio_cvar_breach_rate": 0.008333333333333333,
+      "asset_fit_convergence_rate": 1.0,
+      "asset_fit_fallback_rate": 0.0,
+      "mean_gross_exposure": 1.0,
+      "mean_absolute_net_exposure": 0.0,
+      "evt_usage_rate": 1.0,
+      "mean_copula_avg_abs_correlation": 0.498988638961178,
+      "mean_copula_max_abs_correlation": 0.8336300364079634,
+      "mean_copula_lower_tail_dependence": 0.015893333333333336
+    }
+  ]
+}

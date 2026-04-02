@@ -360,3 +360,154 @@ Artifacts:
 Last Left At:
 - The project now has backtest comparisons plus direct model-diagnostic visuals.
 - Next step is to decide whether to keep investing in the custom GJR engine or revert the default marginal model back to corrected plain GARCH.
+
+### 2026-04-02 - GJR engine-level diagnostic isolated the current issue
+
+Summary:
+- Added a dedicated engine comparison for `india_primary` that measures `custom_gjr` directly against package-backed `arch` GJR on the same rolling windows.
+- Confirmed that the asymmetry specification still has signal on this basket, but the current custom implementation is not reproducing the stronger `arch` GJR walk-forward behavior.
+
+Files Changed:
+- `compare_gjr_engines.py`
+- `PROJECT_LOG.md`
+- `summary.md`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/`
+
+Diagnostic Artifacts:
+- `engine_summary.md`
+- `engine_diagnostics.csv`
+- `vol_forecast_gap_panel.png`
+- `persistence_gap_panel.png`
+- `residual_sq_acf_gap_panel.png`
+
+Diagnostic Takeaways:
+- `custom_gjr` and `arch` GJR are operationally stable on the same India windows: both converged cleanly with zero fallbacks.
+- The two engines are close on some assets, but they are not equivalent:
+  - `^NSEI`: custom volatility forecast averages about `5.4%` above `arch` GJR.
+  - `^CNXPHARMA`: custom volatility forecast averages about `2.4%` above `arch` GJR.
+  - `^CNXENERGY`: custom persistence averages about `0.0915` above `arch` GJR and leaves materially higher squared-residual autocorrelation.
+- A direct 120-day control backtest on the same `india_primary` slice gave:
+  - `garch_baseline`: `3` breaches
+  - `arch_gjr`: `1` breach
+  - `custom_gjr`: `3` breaches
+
+Interpretation:
+- The earlier question is now sharper: this is not just “GJR may have no empirical edge.”
+- On this India segment, package-backed GJR does outperform corrected plain GARCH, while the current custom GJR does not.
+- That points to an implementation-quality gap in the custom engine or wrapper, not just a model-family tie.
+
+Artifacts:
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/engine_summary.md`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/vol_forecast_gap_panel.png`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/persistence_gap_panel.png`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/residual_sq_acf_gap_panel.png`
+
+Last Left At:
+- The next step should focus on reconciling the custom recursion and forecast path against `arch` GJR, starting with the assets showing the largest stable divergence: `^NSEI`, `^CNXPHARMA`, and `^CNXENERGY`.
+
+### 2026-04-02 - First remediation pass closed the India control gap
+
+Summary:
+- Updated the custom GJR wrapper to fit on internally rescaled returns and map forecasts back to original units.
+- Disabled custom warm starts by default so rolling fits no longer terminate after only a few local optimizer steps.
+
+Files Changed:
+- `src/volatility.py`
+- `PROJECT_LOG.md`
+
+Validation:
+- Re-ran the 120-day `india_primary` control comparison after the wrapper change.
+- Results:
+  - `garch_baseline`: `3` breaches
+  - `arch_gjr`: `1` breach
+  - `custom_gjr`: `1` breach
+- Mean optimizer iterations for `custom_gjr` rose to about `37.04`, versus the previously suspicious near-`3` warm-start regime.
+
+Interpretation:
+- The audit findings were actionable and correct.
+- Numerical conditioning plus the warm-start deployment path were the main reasons the custom engine was underperforming on the India control slice.
+- After the first remediation pass, the custom wrapper now tracks the package-backed GJR path much more closely at the backtest level.
+
+Last Left At:
+- The next step should be a narrower engine-core reconciliation against `arch` GJR, especially around the custom recursion initialization and any remaining parameter-level differences.
+
+### 2026-04-02 - Core initialization updated after wrapper stabilization
+
+Summary:
+- Replaced the custom recursion's fixed sample-variance start with a parameter-aware initial variance that blends unconditional variance with a residual backcast.
+- Applied the same initialization helper to the simulation path so the engine uses a consistent variance start rule.
+
+Files Changed:
+- `gjrgarch_fast.py`
+- `PROJECT_LOG.md`
+
+Validation:
+- Re-ran the 120-day `india_primary` control comparison after the core change.
+- Results stayed aligned:
+  - `arch_gjr`: `1` breach
+  - `custom_gjr`: `1` breach
+- `custom_gjr` remained fully operational with zero fallbacks and mean optimizer iterations around `35.37`.
+
+Interpretation:
+- The wrapper fix was the main driver of the earlier correction, and the core initialization change did not break the recovered behavior.
+- The custom engine now has a cleaner likelihood setup than the old sample-proxy start while preserving the improved backtest outcome.
+
+Last Left At:
+- The next step should focus on tighter parameter-level reconciliation against `arch` GJR and wider revalidation beyond the audited India control slice.
+
+### 2026-04-02 - Wider revalidation confirms custom GJR recovery
+
+Summary:
+- Updated the walk-forward comparison workflow so package-backed GJR is now a default control model alongside plain GARCH and custom GJR.
+- Re-ran wider 252-day walk-forward re-audits on both `india_primary` and `us_stress`.
+- Added a direct `us_stress` engine comparison between `arch` GJR and custom GJR.
+
+Files Changed:
+- `compare_walkforward_models.py`
+- `compare_gjr_engines.py`
+- `PROJECT_LOG.md`
+
+Validation:
+- `india_primary` re-audit (`252` days):
+  - `garch_baseline`: `4` breaches
+  - `gjr_arch`: `2` breaches
+  - `gjr_custom`: `2` breaches
+- `us_stress` re-audit (`252` days):
+  - all three models recorded `5` breaches
+- `us_stress` engine comparison showed zero fallbacks and full convergence for both GJR implementations, with generally small remaining gaps; the largest stable residual mismatch is on `XOM`.
+
+Interpretation:
+- The wrapper and initialization fixes generalized beyond the narrow India control slice.
+- The custom GJR path now matches package-backed GJR on the widened basket-level backtests that matter for model selection.
+- Current evidence supports keeping the custom engine in contention rather than reverting to plain GARCH by default.
+- Remaining work is now parameter-level and asset-specific, not a broad deployment failure.
+
+Last Left At:
+- The next step should focus on the remaining asset-level reconciliation against `arch` GJR, with `XOM` the clearest residual gap on `us_stress`.
+
+### 2026-04-02 - Residual XOM gap traced to negative-gamma windows
+
+Summary:
+- Investigated the remaining `XOM` mismatch between package-backed GJR and custom GJR on `us_stress`.
+- Added negative-gamma tracking to the engine comparison workflow so this behavior is explicit in future diagnostics.
+
+Files Changed:
+- `compare_gjr_engines.py`
+- `PROJECT_LOG.md`
+
+Diagnostic Takeaways:
+- About `15%` of the audited `XOM` windows had negative `gamma` in the package-backed `arch` GJR fit.
+- The custom engine enforces `gamma >= 0`, so it cannot reproduce those windows exactly.
+- In the negative-gamma subset, the residual gap is much larger:
+  - mean volatility-gap about `0.0020`
+  - mean persistence-gap about `-0.0908`
+- Outside those windows, the residual mismatch is much smaller and close to the current “acceptable implementation difference” range.
+
+Interpretation:
+- The remaining `XOM` gap is now best understood as a parameter-space / model-specification difference rather than another general execution bug.
+- The current custom engine is still behaving credibly at the basket level, but exact match to `arch` GJR is limited when `arch` chooses negative asymmetry.
+
+Last Left At:
+- The next decision is conceptual rather than purely mechanical:
+  - either keep the current nonnegative-`gamma` custom specification and document the difference
+  - or relax the custom asymmetry constraint if exact `arch`-style matching is the goal

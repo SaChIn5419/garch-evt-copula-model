@@ -1,0 +1,4 @@
+model,n_obs,n_breaches,breach_rate,portfolio_exception_clusters,kupiec_pvalue,christoffersen_pvalue,portfolio_cvar_breach_rate,asset_fit_convergence_rate,asset_fit_fallback_rate,mean_gross_exposure,mean_absolute_net_exposure,evt_usage_rate
+garch_baseline,252.0,4.0,0.015873015873015872,4.0,0.38803811336037564,0.7554928495158948,0.007936507936507936,1.0,0.0,1.0,0.0,1.0
+gjr_arch,252.0,2.0,0.007936507936507936,2.0,0.7327118118255171,0.8992425824026212,0.003968253968253968,1.0,0.0,1.0,0.0,1.0
+gjr_custom,252.0,2.0,0.007936507936507936,2.0,0.7327118118255171,0.8992425824026212,0.003968253968253968,1.0,0.0,1.0,0.0,1.0

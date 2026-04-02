@@ -1,0 +1,3 @@
+copula_family,n_obs,n_breaches,breach_rate,portfolio_exception_clusters,kupiec_pvalue,christoffersen_pvalue,portfolio_cvar_breach_rate,asset_fit_convergence_rate,asset_fit_fallback_rate,mean_gross_exposure,mean_absolute_net_exposure,evt_usage_rate,mean_copula_avg_abs_correlation,mean_copula_max_abs_correlation,mean_copula_lower_tail_dependence
+gaussian,120.0,3.0,0.025,3.0,0.16528938816877958,0.6936244074325746,0.008333333333333333,1.0,0.0,1.0,0.0,1.0,0.5062020921790586,0.8362967511134507,0.015893333333333336
+studentt,120.0,1.0,0.008333333333333333,1.0,0.8501500594233184,0.8964163512150056,0.008333333333333333,1.0,0.0,1.0,0.0,1.0,0.498988638961178,0.8336300364079634,0.015893333333333336

@@ -82,6 +82,44 @@ def _student_t_logpdf_standardized(z: np.ndarray, nu: float) -> np.ndarray:
 
 if njit is not None:
     @njit(cache=True)
+    def _persistence(alpha, gamma, beta):
+        out = 0.0
+        for i in range(alpha.shape[0]):
+            out += alpha[i] + 0.5 * gamma[i]
+        for i in range(beta.shape[0]):
+            out += beta[i]
+        return out
+
+    @njit(cache=True)
+    def _initial_variance(eps, omega, alpha, gamma, beta):
+        persistence = _persistence(alpha, gamma, beta)
+        uncond = omega / max(1e-6, 1.0 - persistence)
+        if uncond <= 1e-12 or not np.isfinite(uncond):
+            uncond = 1e-6
+
+        m = min(eps.shape[0], 75)
+        weighted = 0.0
+        weight_sum = 0.0
+        decay = 0.94
+        weight = 1.0
+        for i in range(m):
+            e2 = eps[i] * eps[i]
+            weighted += weight * e2
+            weight_sum += weight
+            weight *= decay
+
+        backcast = weighted / weight_sum if weight_sum > 0.0 else uncond
+        if backcast <= 1e-12 or not np.isfinite(backcast):
+            backcast = uncond
+
+        s0 = 0.5 * uncond + 0.5 * backcast
+        if s0 <= 1e-12 or not np.isfinite(s0):
+            s0 = uncond
+        if s0 <= 1e-12 or not np.isfinite(s0):
+            s0 = 1e-6
+        return s0
+
+    @njit(cache=True)
     def _pack_stationary(raw_omega, raw_alpha, raw_gamma, raw_beta, raw_scale):
         """
         Map unconstrained raw parameters to:
@@ -136,25 +174,10 @@ if njit is not None:
         eps = np.empty(n, dtype=np.float64)
         sig2 = np.empty(n, dtype=np.float64)
 
-        # initialize with unconditional-ish variance proxy
-        rmean = 0.0
         for i in range(n):
-            rmean += returns[i]
-        rmean /= n
+            eps[i] = returns[i] - mu
+        sig2[0] = _initial_variance(eps, omega, alpha, gamma, beta)
 
-        var0 = 0.0
-        for i in range(n):
-            d = returns[i] - rmean
-            var0 += d * d
-        var0 /= max(n - 1, 1)
-        if var0 <= 1e-12:
-            var0 = 1e-6
-
-        for t in range(n):
-            eps[t] = returns[t] - mu
-            sig2[t] = var0
-
-        # Keep the first variance anchored to the sample proxy and recurse forward.
         for t in range(1, n):
             v = omega
             for j in range(q):
@@ -258,10 +281,7 @@ if njit is not None:
         eps = np.empty(total, dtype=np.float64)
         sig2 = np.empty(total, dtype=np.float64)
 
-        # Start from a conservative variance
-        s0 = omega / max(1e-6, 1.0 - (alpha.sum() + 0.5 * gamma.sum() + beta.sum()))
-        if s0 <= 1e-12:
-            s0 = 1e-6
+        s0 = _initial_variance(np.zeros(min(total, 75), dtype=np.float64), omega, alpha, gamma, beta)
 
         for t in range(total):
             if t == 0:

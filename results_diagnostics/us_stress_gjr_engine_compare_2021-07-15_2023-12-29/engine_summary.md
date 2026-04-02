@@ -1,0 +1,127 @@
+# us_stress GJR Engine Comparison
+
+## AAL
+
+- mean_arch_volatility_forecast: 0.021544082552332037
+- mean_custom_volatility_forecast: 0.02206051375480487
+- mean_vol_forecast_gap: 0.0005164312024728353
+- mean_vol_forecast_ratio: 1.025169463381735
+- mean_arch_persistence: 0.9961009705959757
+- mean_custom_persistence: 0.9970125183114533
+- mean_persistence_gap: 0.0009115477154776101
+- mean_arch_std_resid_sq_lag1_acf: -0.056834621836063574
+- mean_custom_std_resid_sq_lag1_acf: -0.05886363928487455
+- mean_std_resid_sq_acf_gap: -0.002029017448810976
+- mean_alpha_gap: -0.0008935066510337325
+- mean_gamma_gap: 0.00543459699584
+- mean_beta_gap: -0.0009122441314086627
+- mean_nu_gap: -0.5110435534929834
+- arch_fallback_rate: 0.0
+- custom_fallback_rate: 0.0
+- arch_convergence_rate: 1.0
+- custom_convergence_rate: 1.0
+
+## BA
+
+- mean_arch_volatility_forecast: 0.017783490693509034
+- mean_custom_volatility_forecast: 0.017611887843345574
+- mean_vol_forecast_gap: -0.00017160285016345748
+- mean_vol_forecast_ratio: 0.9933048576892017
+- mean_arch_persistence: 0.9898803087536808
+- mean_custom_persistence: 0.9917466068425996
+- mean_persistence_gap: 0.0018662980889188828
+- mean_arch_std_resid_sq_lag1_acf: -0.02725025808855699
+- mean_custom_std_resid_sq_lag1_acf: -0.02827044224069574
+- mean_std_resid_sq_acf_gap: -0.001020184152138749
+- mean_alpha_gap: 2.835206149880471e-06
+- mean_gamma_gap: 0.0005851960886025637
+- mean_beta_gap: 0.0015708648384677264
+- mean_nu_gap: -0.33848197973111976
+- arch_fallback_rate: 0.0
+- custom_fallback_rate: 0.0
+- arch_convergence_rate: 1.0
+- custom_convergence_rate: 1.0
+
+## CCL
+
+- mean_arch_volatility_forecast: 0.03280675811680647
+- mean_custom_volatility_forecast: 0.03265830558298935
+- mean_vol_forecast_gap: -0.00014845253381712324
+- mean_vol_forecast_ratio: 0.9953491970760765
+- mean_arch_persistence: 0.9650698470601479
+- mean_custom_persistence: 0.9624268618697264
+- mean_persistence_gap: -0.00264298519042158
+- mean_arch_std_resid_sq_lag1_acf: 0.017911823571263676
+- mean_custom_std_resid_sq_lag1_acf: 0.0177387832191136
+- mean_std_resid_sq_acf_gap: -0.00017304035215007257
+- mean_alpha_gap: 0.0014933158729657895
+- mean_gamma_gap: 0.0017511566050745116
+- mean_beta_gap: -0.00501187936592462
+- mean_nu_gap: 0.03092484661731436
+- arch_fallback_rate: 0.0
+- custom_fallback_rate: 0.0
+- arch_convergence_rate: 1.0
+- custom_convergence_rate: 1.0
+
+## DAL
+
+- mean_arch_volatility_forecast: 0.021327671322884885
+- mean_custom_volatility_forecast: 0.021289513879041273
+- mean_vol_forecast_gap: -3.815744384360846e-05
+- mean_vol_forecast_ratio: 0.9981744881138488
+- mean_arch_persistence: 0.9488910947053724
+- mean_custom_persistence: 0.9493799279407141
+- mean_persistence_gap: 0.0004888332353416245
+- mean_arch_std_resid_sq_lag1_acf: -0.05060021150853055
+- mean_custom_std_resid_sq_lag1_acf: -0.05030371672932748
+- mean_std_resid_sq_acf_gap: 0.00029649477920306694
+- mean_alpha_gap: -0.0002551750852722413
+- mean_gamma_gap: -0.0004776801358925951
+- mean_beta_gap: 0.00098284838856016
+- mean_nu_gap: -0.07284943291269637
+- arch_fallback_rate: 0.0
+- custom_fallback_rate: 0.0
+- arch_convergence_rate: 1.0
+- custom_convergence_rate: 1.0
+
+## JPM
+
+- mean_arch_volatility_forecast: 0.012074451935459524
+- mean_custom_volatility_forecast: 0.012006956616411855
+- mean_vol_forecast_gap: -6.749531904766942e-05
+- mean_vol_forecast_ratio: 0.9966434449791703
+- mean_arch_persistence: 0.9642671558776458
+- mean_custom_persistence: 0.9626920915727332
+- mean_persistence_gap: -0.0015750643049126398
+- mean_arch_std_resid_sq_lag1_acf: 0.002941861776075724
+- mean_custom_std_resid_sq_lag1_acf: 0.004274516606426225
+- mean_std_resid_sq_acf_gap: 0.0013326548303505006
+- mean_alpha_gap: 0.00010692635962455529
+- mean_gamma_gap: 0.0012652810791685912
+- mean_beta_gap: -0.0023146312041214894
+- mean_nu_gap: -0.07055710990580281
+- arch_fallback_rate: 0.0
+- custom_fallback_rate: 0.0
+- arch_convergence_rate: 1.0
+- custom_convergence_rate: 1.0
+
+## XOM
+
+- mean_arch_volatility_forecast: 0.01734319323055182
+- mean_custom_volatility_forecast: 0.01773548383776785
+- mean_vol_forecast_gap: 0.0003922906072160311
+- mean_vol_forecast_ratio: 1.024972490561819
+- mean_arch_persistence: 0.8911458849875122
+- mean_custom_persistence: 0.8645645064451303
+- mean_persistence_gap: -0.026581378542382062
+- mean_arch_std_resid_sq_lag1_acf: -0.036597113167209
+- mean_custom_std_resid_sq_lag1_acf: -0.044389839966761595
+- mean_std_resid_sq_acf_gap: -0.007792726799552603
+- mean_alpha_gap: 0.008446701259048478
+- mean_gamma_gap: 0.0035784165656974243
+- mean_beta_gap: -0.03681728808427926
+- mean_nu_gap: -0.11963536030522307
+- arch_fallback_rate: 0.0
+- custom_fallback_rate: 0.0
+- arch_convergence_rate: 1.0
+- custom_convergence_rate: 1.0

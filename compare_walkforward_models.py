@@ -88,6 +88,7 @@ def run_comparison(
 
     models = {
         "garch_baseline": ArchVolatilityModel(asymmetry=False),
+        "gjr_arch": ArchVolatilityModel(asymmetry=True),
         "gjr_custom": GJRGARCHVolatilityModel(),
     }
     results: dict[str, BacktestResult] = {}

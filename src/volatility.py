@@ -43,12 +43,16 @@ class GJRGARCHVolatilityModel:
         dist: str = MODEL_DIST,
         maxiter: int = MODEL_MAXITER,
         tol: float = MODEL_TOL,
+        rescale_factor: float = 100.0,
+        use_warm_starts: bool = False,
     ) -> None:
         self.p = p
         self.q = q
         self.dist = dist
         self.maxiter = maxiter
         self.tol = tol
+        self.rescale_factor = float(rescale_factor)
+        self.use_warm_starts = use_warm_starts
         self._warm_starts: dict[str, np.ndarray] = {}
 
     def _fallback_forecast(self, clean: pd.Series, asset_name: str, message: str) -> VolatilityForecast:
@@ -103,13 +107,18 @@ class GJRGARCHVolatilityModel:
 
         asset_name = str(clean.name) if clean.name is not None else "asset"
         model = GJRGARCH(p=self.p, q=self.q, dist=self.dist)
-        x0 = self._warm_starts.get(asset_name)
+        scale = self.rescale_factor if self.rescale_factor > 0.0 else 1.0
+        scaled_returns = clean.to_numpy(dtype=float) * scale
+        x0 = self._warm_starts.get(asset_name) if self.use_warm_starts else None
         try:
-            result = model.fit(clean.to_numpy(), x0=x0, maxiter=self.maxiter, tol=self.tol)
-            self._warm_starts[asset_name] = result.optimizer_x.copy()
-            variance_forecast = float(model.forecast(steps=1)[0])
+            result = model.fit(scaled_returns, x0=x0, maxiter=self.maxiter, tol=self.tol)
+            if self.use_warm_starts:
+                self._warm_starts[asset_name] = result.optimizer_x.copy()
+            variance_forecast = float(model.forecast(steps=1)[0]) / (scale * scale)
             volatility_forecast = float(np.sqrt(variance_forecast))
             std_resid = result.residuals / np.sqrt(result.conditional_variance)
+            residuals = result.residuals / scale
+            conditional_variance = result.conditional_variance / (scale * scale)
             persistence, nu = self._diagnose(result)
         except Exception as exc:
             return self._fallback_forecast(clean, asset_name, f"fallback:model_fit_error:{exc}")
@@ -119,19 +128,25 @@ class GJRGARCHVolatilityModel:
             or (not np.isfinite(variance_forecast))
             or variance_forecast <= 0.0
             or (not np.all(np.isfinite(std_resid)))
-            or (not np.all(np.isfinite(result.conditional_variance)))
+            or (not np.all(np.isfinite(conditional_variance)))
         )
         if invalid:
             return self._fallback_forecast(clean, asset_name, f"fallback:invalid_gjr_fit:{result.message}")
 
+        params = dict(result.params)
+        params["mu"] = float(params["mu"]) / scale
+        params["omega"] = float(params["omega"]) / (scale * scale)
+        params["fit_rescale_factor"] = scale
+        params["warm_start_enabled"] = int(self.use_warm_starts)
+
         return VolatilityForecast(
             asset=asset_name,
-            mean_forecast=float(result.params["mu"]),
+            mean_forecast=float(params["mu"]),
             variance_forecast=variance_forecast,
             volatility_forecast=volatility_forecast,
             standardized_residuals=std_resid,
-            residuals=result.residuals,
-            conditional_variance=result.conditional_variance,
+            residuals=residuals,
+            conditional_variance=conditional_variance,
             converged=result.converged,
             message=result.message,
             distribution=self.dist,
@@ -142,7 +157,7 @@ class GJRGARCHVolatilityModel:
             nu=nu,
             optimizer_nit=int(result.optimizer_nit),
             fallback_used=False,
-            params=result.params,
+            params=params,
         )
 
     def fit_many(self, returns: pd.DataFrame) -> dict[str, VolatilityForecast]:

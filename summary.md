@@ -259,3 +259,85 @@ Current reading:
 - Diagnose why the custom GJR engine is underperforming corrected plain GARCH on `india_primary`.
 - Compare conditional variances, persistence, and residual diagnostics between the two engines on the same windows.
 - Only after that, decide whether to move into regime logic or additional strategy layers.
+
+## Engine-Level Control Result
+
+That diagnostic step is now complete.
+
+A new direct comparison was added between:
+- `arch` GJR
+- the custom GJR engine
+
+Artifacts:
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/engine_summary.md`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/vol_forecast_gap_panel.png`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/persistence_gap_panel.png`
+- `results_diagnostics/india_primary_gjr_engine_compare_2021-06-28_2023-12-29/residual_sq_acf_gap_panel.png`
+
+What it shows:
+- the custom engine is stable, but it is not matching package-backed GJR on the same rolling windows
+- the largest persistent divergences are on `^NSEI`, `^CNXPHARMA`, and `^CNXENERGY`
+- the differences are not just cosmetic parameter shifts; they show up in forecast levels, persistence, and squared-residual autocorrelation
+
+Most importantly, a direct 120-day control backtest on the same India slice produced:
+- corrected plain GARCH: `3` breaches
+- `arch` GJR: `1` breach
+- custom GJR: `3` breaches
+
+Current reading:
+- there is still evidence that the GJR family can improve risk forecasts on `india_primary`
+- the current custom implementation is the weak link
+- the next milestone should be reconciliation against `arch` GJR rather than broader model expansion
+
+## First Remediation Pass
+
+The first wrapper-level remediation is now in place in [src/volatility.py](/home/sachindb/Documents/garch_evt_copla_project_v2/src/volatility.py).
+
+Changes:
+- custom GJR now fits on internally rescaled returns and maps all forecast outputs back to original return units
+- warm starts are disabled by default so rolling fits do not terminate after only a few local steps
+
+Control result after the fix on the same 120-day `india_primary` slice:
+- corrected plain GARCH: `3` breaches
+- `arch` GJR: `1` breach
+- custom GJR: `1` breach
+
+What changed operationally:
+- custom mean optimizer iterations increased to about `37.04`
+- the previous near-`3` iteration regime is gone
+- the custom wrapper now behaves much closer to the package-backed GJR control in backtest terms
+
+## Core Initialization Pass
+
+The custom engine core in [gjrgarch_fast.py](/home/sachindb/Documents/garch_evt_copla_project_v2/gjrgarch_fast.py) has also been updated.
+
+Changes:
+- replaced the fixed sample-variance recursion start with a parameter-aware initial variance
+- the new start blends unconditional variance with a residual backcast
+- the same initialization rule is now used by the simulation path
+
+Control result after the core change:
+- `arch` GJR: `1` breach
+- custom GJR: `1` breach
+
+Current reading:
+- the wrapper-level fix solved the main deployment issue
+- the core initialization is now cleaner and more defensible without giving back the recovered India control performance
+
+## Wider Re-Audit
+
+The model-comparison workflow now includes `gjr_arch` as a default control in [compare_walkforward_models.py](/home/sachindb/Documents/garch_evt_copla_project_v2/compare_walkforward_models.py), and the engine comparison script now supports both baskets in [compare_gjr_engines.py](/home/sachindb/Documents/garch_evt_copla_project_v2/compare_gjr_engines.py).
+
+Results on widened `252`-day re-audits:
+- `india_primary`:
+  - plain GARCH: `4` breaches
+  - `gjr_arch`: `2` breaches
+  - custom GJR: `2` breaches
+- `us_stress`:
+  - all three models: `5` breaches
+
+Current reading:
+- the custom engine now matches package-backed GJR on the widened basket-level backtests
+- India still shows a genuine GJR advantage over plain GARCH
+- `us_stress` currently looks like a true tie at the backtest-summary level
+- remaining differences are now narrower and asset-specific, with `XOM` the clearest residual gap in the `us_stress` engine comparison

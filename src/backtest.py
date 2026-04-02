@@ -42,6 +42,7 @@ def run_walk_forward_backtest(
     window: int = ROLLING_WINDOW,
     alpha: float = FORECAST_ALPHA,
     model: GJRGARCHVolatilityModel | None = None,
+    copula_family: str = "studentt",
 ) -> BacktestResult:
     clean = returns.dropna(how="any").astype(float)
     if clean.shape[0] <= window:
@@ -71,6 +72,7 @@ def run_walk_forward_backtest(
             vol_vector.to_numpy(),
             weights.to_numpy(),
             alpha,
+            family=copula_family,
         )
         realized_portfolio = float(weights.to_numpy() @ realized.to_numpy())
 
@@ -138,7 +140,12 @@ def run_walk_forward_backtest(
                 "portfolio_volatility_forecast": portfolio_risk.volatility,
                 "portfolio_var_forecast": portfolio_risk.var,
                 "portfolio_cvar_forecast": portfolio_risk.cvar,
-                "portfolio_risk_model": "studentt_copula_simulation",
+                "portfolio_risk_model": f"{portfolio_risk.family}_copula_simulation",
+                "copula_family": portfolio_risk.family,
+                "copula_df": int(portfolio_risk.df),
+                "copula_avg_abs_correlation": portfolio_risk.avg_abs_correlation,
+                "copula_max_abs_correlation": portfolio_risk.max_abs_correlation,
+                "copula_lower_tail_dependence": portfolio_risk.lower_tail_dependence,
                 "portfolio_var_breach": breach_flag(realized_portfolio, portfolio_risk.var),
                 "portfolio_cvar_breach": cvar_breach_flag(realized_portfolio, portfolio_risk.cvar),
             }
@@ -160,6 +167,9 @@ def run_walk_forward_backtest(
     summary["mean_persistence"] = float(asset_df["persistence"].mean())
     summary["mean_optimizer_iterations"] = float(asset_df["optimizer_nit"].mean())
     summary["evt_usage_rate"] = float(asset_df["evt_valid"].mean())
+    summary["mean_copula_avg_abs_correlation"] = float(portfolio_df["copula_avg_abs_correlation"].mean())
+    summary["mean_copula_max_abs_correlation"] = float(portfolio_df["copula_max_abs_correlation"].mean())
+    summary["mean_copula_lower_tail_dependence"] = float(portfolio_df["copula_lower_tail_dependence"].mean())
 
     return BacktestResult(
         asset_forecasts=asset_df,

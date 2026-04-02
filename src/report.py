@@ -72,6 +72,31 @@ def _plot_portfolio_weights(weights: pd.DataFrame, output_dir: Path) -> None:
     plt.close(fig)
 
 
+def _plot_copula_diagnostics(portfolio: pd.DataFrame, output_dir: Path) -> None:
+    required = {
+        "copula_avg_abs_correlation",
+        "copula_max_abs_correlation",
+        "copula_lower_tail_dependence",
+    }
+    if not required.issubset(portfolio.columns):
+        return
+
+    fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+    metrics = [
+        ("copula_avg_abs_correlation", "Average Absolute Copula Correlation", "steelblue"),
+        ("copula_max_abs_correlation", "Maximum Absolute Copula Correlation", "darkorange"),
+        ("copula_lower_tail_dependence", "Empirical Lower Tail Co-Exceedance", "crimson"),
+    ]
+    for ax, (col, title, color) in zip(axes, metrics):
+        ax.plot(portfolio.index, portfolio[col], color=color, linewidth=1.2)
+        ax.set_title(title)
+        ax.grid(alpha=0.2)
+
+    fig.tight_layout()
+    fig.savefig(output_dir / "copula_diagnostics.png")
+    plt.close(fig)
+
+
 def save_backtest_results(
     result: BacktestResult,
     run_name: str,
@@ -94,6 +119,7 @@ def save_backtest_results(
 
     if not result.portfolio_forecasts.empty:
         _plot_portfolio_risk(result.portfolio_forecasts, output_dir)
+        _plot_copula_diagnostics(result.portfolio_forecasts, output_dir)
     if not result.portfolio_weights.empty:
         _plot_portfolio_weights(result.portfolio_weights, output_dir)
 
