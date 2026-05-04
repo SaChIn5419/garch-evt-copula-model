@@ -18,7 +18,7 @@ from src.risk_metrics import (
     summarize_breaches,
 )
 from src.strategy import dollar_neutral_vol_weights
-from src.volatility import GJRGARCHVolatilityModel
+from src.volatility import GJRGARCHVolatilityModel, ArchVolatilityModel
 
 
 @dataclass
@@ -41,7 +41,7 @@ def run_walk_forward_backtest(
     returns: pd.DataFrame,
     window: int = ROLLING_WINDOW,
     alpha: float = FORECAST_ALPHA,
-    model: GJRGARCHVolatilityModel | None = None,
+    model: GJRGARCHVolatilityModel | ArchVolatilityModel | None = None,
     copula_family: str = "studentt",
 ) -> BacktestResult:
     clean = returns.dropna(how="any").astype(float)
